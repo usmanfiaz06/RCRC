@@ -13,10 +13,9 @@ const CONFIG = {
     RCRC_API: 'https://opendata.rcrc.gov.sa/api/explore/v2.1/catalog/datasets/air-quality-stations-in-riyadh-2025/records',
 
     // WAQI API for real-time AQ data
-    // The demo token works for basic requests; users should register for a free token at:
-    // https://aqicn.org/data-platform/token/
+    // Register for a free token at: https://aqicn.org/data-platform/token/
     WAQI_API_BASE: 'https://api.waqi.info',
-    WAQI_TOKEN: 'demo',
+    WAQI_TOKEN: '40ab14872a11434ab8fa725d0ce972b474f56ced',
 
     // Riyadh station IDs on WAQI network
     WAQI_STATION_KEYWORD: 'riyadh',
