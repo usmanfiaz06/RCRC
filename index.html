@@ -33,6 +33,10 @@
                 <i class="fas fa-clock"></i>
                 <span id="last-updated-time">Loading...</span>
             </div>
+            <button id="theme-toggle" class="theme-toggle" title="Toggle Light/Dark Mode">
+                <i class="fas fa-moon"></i>
+                <i class="fas fa-sun"></i>
+            </button>
             <button id="notification-btn" class="btn btn-icon" title="Enable Air Quality Alerts">
                 <i class="fas fa-bell"></i>
             </button>
@@ -224,6 +228,110 @@
                 </div>
                 <div class="card-body chart-container chart-container-lg">
                     <canvas id="all-pollutants-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- AQI Hourly Trend -->
+        <div class="dashboard-row">
+            <div class="card chart-card full-width">
+                <div class="card-header">
+                    <h2><i class="fas fa-wave-square"></i> AQI Hourly Trend (24h)</h2>
+                    <div class="chart-legend-inline">
+                        <span class="legend-dot" style="background:var(--accent-blue)"></span> AQI
+                        <span class="legend-line" style="border-color:var(--accent-orange)"></span> Moderate (100)
+                        <span class="legend-line" style="border-color:var(--accent-red)"></span> Unhealthy (150)
+                    </div>
+                </div>
+                <div class="card-body chart-container">
+                    <canvas id="aqi-trend-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Row: Radar + Stats -->
+        <div class="dashboard-row analysis-row">
+            <!-- Pollutant Radar Chart -->
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-diagram-project"></i> Pollutant vs WHO Limits</h2>
+                </div>
+                <div class="card-body chart-container">
+                    <canvas id="radar-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- 24h Statistics Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-column"></i> 24-Hour Statistics</h2>
+                </div>
+                <div class="card-body">
+                    <div id="dominant-pollutant" class="dominant-pollutant-display">
+                        <div class="dominant-icon"><i class="fas fa-smog"></i></div>
+                        <div class="dominant-info">
+                            <div class="dominant-name" id="dominant-name">--</div>
+                            <div class="dominant-detail" id="dominant-detail">Calculating dominant pollutant...</div>
+                        </div>
+                        <div class="dominant-percentage" id="dominant-pct">--%</div>
+                    </div>
+                    <div class="stats-grid" id="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">PM2.5 Avg</span>
+                            <span class="stat-value" id="stat-pm25-avg">--</span>
+                            <span class="stat-sub">&micro;g/m&sup3;</span>
+                        </div>
+                        <div class="stat-item highlight">
+                            <span class="stat-label">PM2.5 Peak</span>
+                            <span class="stat-value" id="stat-pm25-peak">--</span>
+                            <span class="stat-sub">&micro;g/m&sup3;</span>
+                        </div>
+                        <div class="stat-item good-highlight">
+                            <span class="stat-label">PM2.5 Low</span>
+                            <span class="stat-value" id="stat-pm25-low">--</span>
+                            <span class="stat-sub">&micro;g/m&sup3;</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">PM10 Avg</span>
+                            <span class="stat-value" id="stat-pm10-avg">--</span>
+                            <span class="stat-sub">&micro;g/m&sup3;</span>
+                        </div>
+                        <div class="stat-item highlight">
+                            <span class="stat-label">PM10 Peak</span>
+                            <span class="stat-value" id="stat-pm10-peak">--</span>
+                            <span class="stat-sub">&micro;g/m&sup3;</span>
+                        </div>
+                        <div class="stat-item good-highlight">
+                            <span class="stat-label">PM10 Low</span>
+                            <span class="stat-value" id="stat-pm10-low">--</span>
+                            <span class="stat-sub">&micro;g/m&sup3;</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pollutant Breakdown Row -->
+        <div class="dashboard-row analysis-row">
+            <!-- Pollutant Doughnut -->
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-pie"></i> Pollutant Contribution</h2>
+                </div>
+                <div class="card-body chart-container">
+                    <canvas id="doughnut-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Pollutant Breakdown Bars -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-bars-progress"></i> WHO Compliance Breakdown</h2>
+                </div>
+                <div class="card-body">
+                    <div class="breakdown-list" id="breakdown-list">
+                        <!-- Populated by JS -->
+                    </div>
                 </div>
             </div>
         </div>

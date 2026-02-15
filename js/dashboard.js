@@ -64,7 +64,8 @@ const state = {
     alerts: [],
     notificationsEnabled: false,
     refreshTimer: null,
-    lastFetchTime: null
+    lastFetchTime: null,
+    simulated24h: { pm25: [], pm10: [], aqi: [], labels: [] }
 };
 
 // ===== DOM ELEMENTS =====
@@ -99,7 +100,9 @@ const DOM = {
     enableNotificationsBtn: document.getElementById('enable-notifications-btn'),
     dismissNotificationsBtn: document.getElementById('dismiss-notifications-btn'),
     modalClose: document.getElementById('modal-close'),
-    clearAlertsBtn: document.getElementById('clear-alerts-btn')
+    clearAlertsBtn: document.getElementById('clear-alerts-btn'),
+    themeToggle: document.getElementById('theme-toggle'),
+    breakdownList: document.getElementById('breakdown-list')
 };
 
 // ===== AQI CATEGORIES =====
@@ -156,6 +159,7 @@ const AQI_CATEGORIES = [
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initCharts();
     initEventListeners();
     loadSavedSettings();
@@ -163,7 +167,107 @@ document.addEventListener('DOMContentLoaded', () => {
     startAutoRefresh();
 });
 
+// ===== THEME =====
+function initTheme() {
+    const saved = localStorage.getItem('aq_theme');
+    if (saved === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'light' ? 'dark' : 'light';
+    if (next === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+    }
+    localStorage.setItem('aq_theme', next);
+    updateChartTheme();
+}
+
+function getThemeColors() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    return {
+        grid: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(42, 58, 74, 0.5)',
+        tick: isLight ? '#718096' : '#5c6e7e',
+        tooltipBg: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(30, 45, 61, 0.95)',
+        tooltipTitle: isLight ? '#1a1a2e' : '#e8edf2',
+        tooltipBody: isLight ? '#4a5568' : '#8899a6',
+        tooltipBorder: isLight ? 'rgba(43, 108, 176, 0.3)' : 'rgba(29, 161, 242, 0.3)',
+        legendText: isLight ? '#4a5568' : '#8899a6',
+        whoLine: isLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255,255,255,0.3)',
+        whoBg: isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.08)',
+        whoBorder: isLight ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.3)',
+        radarGrid: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)',
+        radarAngle: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.05)',
+        radarPointLabel: isLight ? '#1a1a2e' : '#e8edf2'
+    };
+}
+
+function updateChartTheme() {
+    const colors = getThemeColors();
+    Object.values(state.charts).forEach(chart => {
+        if (!chart || !chart.options) return;
+        // Update tooltip
+        if (chart.options.plugins && chart.options.plugins.tooltip) {
+            chart.options.plugins.tooltip.backgroundColor = colors.tooltipBg;
+            chart.options.plugins.tooltip.titleColor = colors.tooltipTitle;
+            chart.options.plugins.tooltip.bodyColor = colors.tooltipBody;
+            chart.options.plugins.tooltip.borderColor = colors.tooltipBorder;
+        }
+        // Update legend
+        if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+            chart.options.plugins.legend.labels.color = colors.legendText;
+        }
+        // Update scales (cartesian charts)
+        if (chart.options.scales) {
+            if (chart.options.scales.x) {
+                chart.options.scales.x.grid.color = colors.grid;
+                chart.options.scales.x.ticks.color = colors.tick;
+            }
+            if (chart.options.scales.y) {
+                chart.options.scales.y.grid.color = colors.grid;
+                chart.options.scales.y.ticks.color = colors.tick;
+                if (chart.options.scales.y.title) {
+                    chart.options.scales.y.title.color = colors.tick;
+                }
+            }
+        }
+        // Update radar scale
+        if (chart.options.scales && chart.options.scales.r) {
+            chart.options.scales.r.grid.color = colors.radarGrid;
+            chart.options.scales.r.angleLines.color = colors.radarAngle;
+            chart.options.scales.r.pointLabels.color = colors.radarPointLabel;
+            chart.options.scales.r.ticks.color = colors.tick;
+            chart.options.scales.r.ticks.backdropColor = 'transparent';
+        }
+        chart.update('none');
+    });
+    // Update WHO guideline line colors for line charts
+    if (state.charts.pm25) {
+        state.charts.pm25.data.datasets[1].borderColor = colors.whoLine;
+        state.charts.pm25.update('none');
+    }
+    if (state.charts.pm10) {
+        state.charts.pm10.data.datasets[1].borderColor = colors.whoLine;
+        state.charts.pm10.update('none');
+    }
+    if (state.charts.aqiTrend) {
+        state.charts.aqiTrend.data.datasets[1].borderColor = colors.whoLine;
+        state.charts.aqiTrend.update('none');
+    }
+    if (state.charts.allPollutants) {
+        state.charts.allPollutants.data.datasets[1].backgroundColor = colors.whoBg;
+        state.charts.allPollutants.data.datasets[1].borderColor = colors.whoBorder;
+        state.charts.allPollutants.update('none');
+    }
+}
+
 function initEventListeners() {
+    DOM.themeToggle.addEventListener('click', toggleTheme);
+
     DOM.refreshBtn.addEventListener('click', () => {
         DOM.refreshBtn.querySelector('i').classList.add('fa-spin');
         fetchAllData().finally(() => {
@@ -335,6 +439,11 @@ function processWAQIData(data) {
     } else {
         updateChartsWithCurrent(currentValues);
     }
+
+    // Update new analysis charts
+    updateRadarChart(currentValues);
+    updateDoughnutChart(currentValues);
+    updateBreakdownBars(currentValues);
 }
 
 function processSimulatedData() {
@@ -366,6 +475,9 @@ function processSimulatedData() {
     updateStandardsTable(currentValues);
     checkAlerts(currentValues);
     generateSimulatedChartData(currentValues);
+    updateRadarChart(currentValues);
+    updateDoughnutChart(currentValues);
+    updateBreakdownBars(currentValues);
 
     showToast('info', 'Live Data Mode',
         'Fetching real-time data from WAQI network. If the API is unreachable, simulated Riyadh-typical values are shown. Register for a free API token at aqicn.org for reliable access.');
@@ -451,17 +563,18 @@ function updateLastUpdatedTime() {
 }
 
 // ===== CHARTS =====
-function initCharts() {
-    const chartDefaults = {
+function getChartDefaults() {
+    const colors = getThemeColors();
+    return {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
             legend: { display: false },
             tooltip: {
-                backgroundColor: 'rgba(30, 45, 61, 0.95)',
-                titleColor: '#e8edf2',
-                bodyColor: '#8899a6',
-                borderColor: 'rgba(29, 161, 242, 0.3)',
+                backgroundColor: colors.tooltipBg,
+                titleColor: colors.tooltipTitle,
+                bodyColor: colors.tooltipBody,
+                borderColor: colors.tooltipBorder,
                 borderWidth: 1,
                 cornerRadius: 8,
                 padding: 10
@@ -469,16 +582,21 @@ function initCharts() {
         },
         scales: {
             x: {
-                grid: { color: 'rgba(42, 58, 74, 0.5)', drawBorder: false },
-                ticks: { color: '#5c6e7e', font: { size: 10 } }
+                grid: { color: colors.grid, drawBorder: false },
+                ticks: { color: colors.tick, font: { size: 10 } }
             },
             y: {
-                grid: { color: 'rgba(42, 58, 74, 0.5)', drawBorder: false },
-                ticks: { color: '#5c6e7e', font: { size: 10 } },
+                grid: { color: colors.grid, drawBorder: false },
+                ticks: { color: colors.tick, font: { size: 10 } },
                 beginAtZero: true
             }
         }
     };
+}
+
+function initCharts() {
+    const chartDefaults = getChartDefaults();
+    const colors = getThemeColors();
 
     // PM2.5 Chart
     state.charts.pm25 = new Chart(document.getElementById('pm25-chart'), {
@@ -500,7 +618,7 @@ function initCharts() {
                 {
                     label: 'WHO Guideline (15)',
                     data: [],
-                    borderColor: 'rgba(255,255,255,0.3)',
+                    borderColor: colors.whoLine,
                     borderDash: [5, 5],
                     borderWidth: 1,
                     pointRadius: 0,
@@ -546,7 +664,7 @@ function initCharts() {
                 {
                     label: 'WHO Guideline (45)',
                     data: [],
-                    borderColor: 'rgba(255,255,255,0.3)',
+                    borderColor: colors.whoLine,
                     borderDash: [5, 5],
                     borderWidth: 1,
                     pointRadius: 0,
@@ -570,7 +688,7 @@ function initCharts() {
     state.charts.allPollutants = new Chart(document.getElementById('all-pollutants-chart'), {
         type: 'bar',
         data: {
-            labels: ['PM2.5', 'PM10', 'O₃', 'NO₂', 'SO₂', 'CO'],
+            labels: ['PM2.5', 'PM10', 'O\u2083', 'NO\u2082', 'SO\u2082', 'CO'],
             datasets: [
                 {
                     label: 'Current Value',
@@ -594,8 +712,8 @@ function initCharts() {
                 {
                     label: 'WHO 24h Guideline',
                     data: [15, 45, 100, 25, 40, 4],
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    backgroundColor: colors.whoBg,
+                    borderColor: colors.whoBorder,
                     borderWidth: 1,
                     borderDash: [3, 3],
                     borderRadius: 6,
@@ -621,7 +739,7 @@ function initCharts() {
                     display: true,
                     position: 'top',
                     labels: {
-                        color: '#8899a6',
+                        color: colors.legendText,
                         font: { size: 11 },
                         usePointStyle: true,
                         pointStyle: 'rectRounded'
@@ -634,14 +752,203 @@ function initCharts() {
                     ...chartDefaults.scales.y,
                     title: {
                         display: true,
-                        text: 'Concentration (μg/m³)',
-                        color: '#5c6e7e',
+                        text: 'Concentration (\u03BCg/m\u00B3)',
+                        color: colors.tick,
                         font: { size: 11 }
                     }
                 }
             }
         }
     });
+
+    // AQI Hourly Trend Chart
+    state.charts.aqiTrend = new Chart(document.getElementById('aqi-trend-chart'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'AQI',
+                    data: [],
+                    borderColor: '#1da1f2',
+                    backgroundColor: createAQIGradient(document.getElementById('aqi-trend-chart')),
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    borderWidth: 2.5,
+                    pointBackgroundColor: function(context) {
+                        const val = context.parsed ? context.parsed.y : 0;
+                        if (val <= 50) return '#00e400';
+                        if (val <= 100) return '#ffff00';
+                        if (val <= 150) return '#ff7e00';
+                        return '#ff0000';
+                    }
+                },
+                {
+                    label: 'Moderate Threshold (100)',
+                    data: [],
+                    borderColor: colors.whoLine,
+                    borderDash: [6, 4],
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: 'Unhealthy Threshold (150)',
+                    data: [],
+                    borderColor: 'rgba(244, 67, 54, 0.5)',
+                    borderDash: [8, 4],
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false
+                }
+            ]
+        },
+        options: chartDefaults
+    });
+
+    // Pollutant Radar Chart (% of WHO limits)
+    state.charts.radar = new Chart(document.getElementById('radar-chart'), {
+        type: 'radar',
+        data: {
+            labels: ['PM2.5', 'PM10', 'O\u2083', 'NO\u2082', 'SO\u2082', 'CO'],
+            datasets: [
+                {
+                    label: '% of WHO Limit',
+                    data: [0, 0, 0, 0, 0, 0],
+                    borderColor: 'rgba(244, 67, 54, 0.8)',
+                    backgroundColor: 'rgba(244, 67, 54, 0.15)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#f44336',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: '100% (WHO Limit)',
+                    data: [100, 100, 100, 100, 100, 100],
+                    borderColor: 'rgba(0, 200, 83, 0.5)',
+                    backgroundColor: 'rgba(0, 200, 83, 0.05)',
+                    borderWidth: 1.5,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        color: colors.legendText,
+                        font: { size: 10 },
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    backgroundColor: colors.tooltipBg,
+                    titleColor: colors.tooltipTitle,
+                    bodyColor: colors.tooltipBody,
+                    borderColor: colors.tooltipBorder,
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw.toFixed(0)}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                r: {
+                    grid: { color: colors.radarGrid },
+                    angleLines: { color: colors.radarAngle },
+                    pointLabels: {
+                        color: colors.radarPointLabel,
+                        font: { size: 12, weight: '600' }
+                    },
+                    ticks: {
+                        color: colors.tick,
+                        backdropColor: 'transparent',
+                        font: { size: 9 },
+                        stepSize: 50
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 200
+                }
+            }
+        }
+    });
+
+    // Pollutant Contribution Doughnut
+    state.charts.doughnut = new Chart(document.getElementById('doughnut-chart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['PM2.5', 'PM10', 'O\u2083', 'NO\u2082', 'SO\u2082', 'CO'],
+            datasets: [{
+                data: [0, 0, 0, 0, 0, 0],
+                backgroundColor: [
+                    'rgba(244, 67, 54, 0.8)',
+                    'rgba(255, 152, 0, 0.8)',
+                    'rgba(156, 39, 176, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(29, 161, 242, 0.8)',
+                    'rgba(0, 200, 83, 0.8)'
+                ],
+                borderColor: [
+                    '#f44336', '#ff9800', '#9c27b0',
+                    '#ffc107', '#1da1f2', '#00c853'
+                ],
+                borderWidth: 2,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        color: colors.legendText,
+                        font: { size: 11 },
+                        usePointStyle: true,
+                        padding: 12
+                    }
+                },
+                tooltip: {
+                    backgroundColor: colors.tooltipBg,
+                    titleColor: colors.tooltipTitle,
+                    bodyColor: colors.tooltipBody,
+                    borderColor: colors.tooltipBorder,
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                            return ` ${context.label}: ${pct}% of total`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createAQIGradient(canvas) {
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+    gradient.addColorStop(0, 'rgba(29, 161, 242, 0.3)');
+    gradient.addColorStop(1, 'rgba(29, 161, 242, 0.02)');
+    return gradient;
 }
 
 function updateChartsWithForecast(daily) {
@@ -677,6 +984,44 @@ function updateChartsWithForecast(daily) {
     if (state.currentData) {
         updateAllPollutantsChart(state.currentData);
     }
+
+    // Generate AQI trend from simulated data since forecast doesn't include AQI history
+    if (state.currentData) {
+        generateAQITrendFromCurrent(state.currentData);
+    }
+}
+
+function generateAQITrendFromCurrent(values) {
+    const now = new Date();
+    const labels = [];
+    const aqiData = [];
+    const baseAQI = values.aqi || 80;
+
+    for (let i = 23; i >= 0; i--) {
+        const time = new Date(now - i * 3600 * 1000);
+        labels.push(time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+        const hour = time.getHours();
+        let factor = 1;
+        if (hour >= 7 && hour <= 9) factor = 1.3;
+        else if (hour >= 17 && hour <= 19) factor = 1.25;
+        else if (hour >= 0 && hour <= 5) factor = 0.7;
+        else if (hour >= 12 && hour <= 14) factor = 1.15;
+        const variation = () => (Math.random() - 0.5) * 0.3 + 1;
+        aqiData.push(Math.max(10, Math.round(baseAQI * factor * variation())));
+    }
+
+    state.simulated24h.aqi = aqiData;
+    state.simulated24h.labels = labels;
+
+    const moderateLine = labels.map(() => 100);
+    const unhealthyLine = labels.map(() => 150);
+    state.charts.aqiTrend.data.labels = labels;
+    state.charts.aqiTrend.data.datasets[0].data = aqiData;
+    state.charts.aqiTrend.data.datasets[1].data = moderateLine;
+    state.charts.aqiTrend.data.datasets[2].data = unhealthyLine;
+    state.charts.aqiTrend.update('none');
+
+    updateStatsPanel();
 }
 
 function updateChartsWithCurrent(values) {
@@ -688,6 +1033,7 @@ function generateSimulatedChartData(currentValues) {
     const labels = [];
     const pm25Data = [];
     const pm10Data = [];
+    const aqiData = [];
 
     // Generate 24 hours of data points
     for (let i = 23; i >= 0; i--) {
@@ -707,10 +1053,15 @@ function generateSimulatedChartData(currentValues) {
 
         const basePM25 = currentValues.pm25 || 30;
         const basePM10 = currentValues.pm10 || 100;
+        const baseAQI = currentValues.aqi || 80;
 
         pm25Data.push(Math.max(5, Math.round(basePM25 * factor * variation())));
         pm10Data.push(Math.max(10, Math.round(basePM10 * factor * variation())));
+        aqiData.push(Math.max(10, Math.round(baseAQI * factor * variation())));
     }
+
+    // Store for stats
+    state.simulated24h = { pm25: pm25Data, pm10: pm10Data, aqi: aqiData, labels: labels };
 
     const whoLinePM25 = labels.map(() => CONFIG.WHO_LIMITS.pm25);
     const whoLinePM10 = labels.map(() => CONFIG.WHO_LIMITS.pm10);
@@ -731,8 +1082,20 @@ function generateSimulatedChartData(currentValues) {
     state.charts.pm10.data.datasets[2].data = ncecLinePM10;
     state.charts.pm10.update('none');
 
+    // Update AQI Trend chart
+    const moderateLine = labels.map(() => 100);
+    const unhealthyLine = labels.map(() => 150);
+    state.charts.aqiTrend.data.labels = labels;
+    state.charts.aqiTrend.data.datasets[0].data = aqiData;
+    state.charts.aqiTrend.data.datasets[1].data = moderateLine;
+    state.charts.aqiTrend.data.datasets[2].data = unhealthyLine;
+    state.charts.aqiTrend.update('none');
+
     // Update all pollutants bar chart
     updateAllPollutantsChart(currentValues);
+
+    // Update 24h statistics
+    updateStatsPanel();
 }
 
 function updateStandardsTable(values) {
@@ -782,6 +1145,117 @@ function updateAllPollutantsChart(values) {
         values.co ? values.co * 10 : 0  // Scale CO for visibility (mg/m³ × 10)
     ];
     state.charts.allPollutants.update('none');
+}
+
+// ===== ANALYSIS UPDATES =====
+function updateRadarChart(values) {
+    const whoData = [
+        values.pm25 ? (values.pm25 / CONFIG.WHO_LIMITS.pm25) * 100 : 0,
+        values.pm10 ? (values.pm10 / CONFIG.WHO_LIMITS.pm10) * 100 : 0,
+        values.o3 ? (values.o3 / CONFIG.WHO_LIMITS.o3) * 100 : 0,
+        values.no2 ? (values.no2 / CONFIG.WHO_LIMITS.no2) * 100 : 0,
+        values.so2 ? (values.so2 / CONFIG.WHO_LIMITS.so2) * 100 : 0,
+        values.co ? (values.co / CONFIG.WHO_LIMITS.co) * 100 : 0
+    ];
+    state.charts.radar.data.datasets[0].data = whoData;
+    state.charts.radar.update('none');
+}
+
+function updateDoughnutChart(values) {
+    // Normalize all pollutants to same scale (% of WHO) for fair comparison
+    const normalized = [
+        values.pm25 ? (values.pm25 / CONFIG.WHO_LIMITS.pm25) : 0,
+        values.pm10 ? (values.pm10 / CONFIG.WHO_LIMITS.pm10) : 0,
+        values.o3 ? (values.o3 / CONFIG.WHO_LIMITS.o3) : 0,
+        values.no2 ? (values.no2 / CONFIG.WHO_LIMITS.no2) : 0,
+        values.so2 ? (values.so2 / CONFIG.WHO_LIMITS.so2) : 0,
+        values.co ? (values.co / CONFIG.WHO_LIMITS.co) : 0
+    ];
+    state.charts.doughnut.data.datasets[0].data = normalized;
+    state.charts.doughnut.update('none');
+
+    // Update dominant pollutant
+    updateDominantPollutant(values, normalized);
+}
+
+function updateDominantPollutant(values, normalized) {
+    const names = ['PM2.5', 'PM10', 'O\u2083', 'NO\u2082', 'SO\u2082', 'CO'];
+    const icons = ['fa-smog', 'fa-cloud-meatball', 'fa-sun', 'fa-industry', 'fa-flask', 'fa-fire'];
+    const iconColors = ['#f44336', '#ff9800', '#9c27b0', '#ffc107', '#1da1f2', '#00c853'];
+
+    let maxIdx = 0;
+    for (let i = 1; i < normalized.length; i++) {
+        if (normalized[i] > normalized[maxIdx]) maxIdx = i;
+    }
+
+    const total = normalized.reduce((a, b) => a + b, 0);
+    const pct = total > 0 ? ((normalized[maxIdx] / total) * 100).toFixed(0) : 0;
+    const whoPercent = normalized[maxIdx] * 100;
+
+    const nameEl = document.getElementById('dominant-name');
+    const detailEl = document.getElementById('dominant-detail');
+    const pctEl = document.getElementById('dominant-pct');
+    const iconEl = document.querySelector('.dominant-icon');
+
+    if (nameEl) nameEl.textContent = names[maxIdx];
+    if (detailEl) detailEl.textContent = `Dominant pollutant at ${whoPercent.toFixed(0)}% of WHO limit`;
+    if (pctEl) pctEl.textContent = `${pct}%`;
+    if (iconEl) {
+        iconEl.innerHTML = `<i class="fas ${icons[maxIdx]}"></i>`;
+        iconEl.style.color = iconColors[maxIdx];
+        iconEl.style.background = `${iconColors[maxIdx]}20`;
+    }
+}
+
+function updateBreakdownBars(values) {
+    const pollutants = [
+        { key: 'pm25', name: 'PM2.5', color: '#f44336', value: values.pm25, limit: CONFIG.WHO_LIMITS.pm25 },
+        { key: 'pm10', name: 'PM10', color: '#ff9800', value: values.pm10, limit: CONFIG.WHO_LIMITS.pm10 },
+        { key: 'o3', name: 'O\u2083', color: '#9c27b0', value: values.o3, limit: CONFIG.WHO_LIMITS.o3 },
+        { key: 'no2', name: 'NO\u2082', color: '#ffc107', value: values.no2, limit: CONFIG.WHO_LIMITS.no2 },
+        { key: 'so2', name: 'SO\u2082', color: '#1da1f2', value: values.so2, limit: CONFIG.WHO_LIMITS.so2 },
+        { key: 'co', name: 'CO', color: '#00c853', value: values.co, limit: CONFIG.WHO_LIMITS.co }
+    ];
+
+    if (!DOM.breakdownList) return;
+
+    DOM.breakdownList.innerHTML = pollutants.map(p => {
+        const val = p.value || 0;
+        const pct = Math.min((val / p.limit) * 100, 200);
+        const status = val > p.limit ? 'Exceeds' : 'OK';
+        const barColor = val > p.limit ? '#f44336' : p.color;
+        return `
+            <div class="breakdown-item">
+                <div class="breakdown-color" style="background:${p.color}"></div>
+                <span class="breakdown-name">${p.name}</span>
+                <div class="breakdown-bar-wrapper">
+                    <div class="breakdown-bar-fill" style="width:${Math.min(pct, 100)}%;background:${barColor}"></div>
+                </div>
+                <span class="breakdown-value">${pct.toFixed(0)}% ${status}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateStatsPanel() {
+    const data = state.simulated24h;
+    if (!data.pm25.length) return;
+
+    const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+    const max = arr => arr.length ? Math.max(...arr) : 0;
+    const min = arr => arr.length ? Math.min(...arr) : 0;
+
+    const setEl = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    setEl('stat-pm25-avg', avg(data.pm25));
+    setEl('stat-pm25-peak', max(data.pm25));
+    setEl('stat-pm25-low', min(data.pm25));
+    setEl('stat-pm10-avg', avg(data.pm10));
+    setEl('stat-pm10-peak', max(data.pm10));
+    setEl('stat-pm10-low', min(data.pm10));
 }
 
 // ===== ALERTS & NOTIFICATIONS =====
