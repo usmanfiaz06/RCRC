@@ -529,6 +529,7 @@ a:hover {
 }
 
 .who-line { border-color: rgba(255,255,255,0.4); }
+.ncec-line { border-color: rgba(0, 200, 83, 0.6); }
 
 .chart-controls {
     display: flex;
@@ -933,6 +934,144 @@ input:checked + .slider:before {
 .modal-actions {
     display: flex;
     gap: 0.75rem;
+}
+
+/* === STANDARDS COMPARISON === */
+.standards-card .card-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.standards-badges {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.std-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.who-badge {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.ncec-badge {
+    background: rgba(0, 200, 83, 0.08);
+    border: 1px solid rgba(0, 200, 83, 0.3);
+    color: var(--accent-green);
+}
+
+.standards-table-wrapper {
+    overflow-x: auto;
+}
+
+.standards-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+
+.standards-table th {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.standards-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid rgba(42, 58, 74, 0.4);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.standards-table tbody tr:hover {
+    background: rgba(29, 161, 242, 0.04);
+}
+
+.standards-table .who-col {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.standards-table .ncec-col {
+    color: var(--accent-green);
+}
+
+.standards-table .current-val {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.pollutant-tag {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.pm25-tag { background: rgba(244, 67, 54, 0.15); color: var(--accent-red); }
+.pm10-tag { background: rgba(255, 152, 0, 0.15); color: var(--accent-orange); }
+.o3-tag { background: rgba(156, 39, 176, 0.15); color: var(--accent-purple); }
+.no2-tag { background: rgba(255, 193, 7, 0.15); color: var(--accent-yellow); }
+.so2-tag { background: rgba(29, 161, 242, 0.15); color: var(--accent-blue); }
+.co-tag { background: rgba(0, 200, 83, 0.15); color: var(--accent-green); }
+
+.compliance-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.compliance-badge.compliant {
+    background: rgba(0, 200, 83, 0.12);
+    color: var(--accent-green);
+}
+
+.compliance-badge.exceeds-who {
+    background: rgba(255, 152, 0, 0.12);
+    color: var(--accent-orange);
+}
+
+.compliance-badge.exceeds-ncec {
+    background: rgba(244, 67, 54, 0.12);
+    color: var(--accent-red);
+}
+
+.standards-note {
+    margin-top: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    background: rgba(29, 161, 242, 0.05);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: 0 6px 6px 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.standards-note i {
+    color: var(--accent-blue);
+    margin-top: 1px;
 }
 
 /* === FOOTER === */

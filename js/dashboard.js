@@ -34,16 +34,25 @@ const CONFIG = {
         lon: 46.638
     },
 
-    // WHO Guidelines (24-hour mean)
+    // WHO 2021 Guidelines (24-hour mean unless noted)
     WHO_LIMITS: {
-        pm25: 15,
-        pm10: 45
+        pm25: 15,       // μg/m³ - 24-hour mean
+        pm10: 45,       // μg/m³ - 24-hour mean
+        o3: 100,        // μg/m³ - 8-hour daily max
+        no2: 25,        // μg/m³ - 24-hour mean
+        so2: 40,        // μg/m³ - 24-hour mean
+        co: 4           // mg/m³ - 24-hour mean
     },
 
-    // Saudi NAAQS limits
-    SAUDI_LIMITS: {
-        pm25: 35,   // 24-hour
-        pm10: 340,  // 24-hour
+    // Saudi NCEC / NAAQS Standards (Executive Regulation for Air Quality)
+    // National Center for Environmental Compliance
+    NCEC_LIMITS: {
+        pm25: 35,       // μg/m³ - 24-hour average
+        pm10: 340,      // μg/m³ - 24-hour average
+        o3: 120,        // μg/m³ - 8-hour daily max
+        no2: 660,       // μg/m³ - 1-hour max
+        so2: 365,       // μg/m³ - 24-hour average
+        co: 10          // mg/m³ - 8-hour average
     }
 };
 
@@ -317,6 +326,7 @@ function processWAQIData(data) {
     updatePollutantMetrics(currentValues);
     updateWeather(currentValues);
     updateHealthRecommendations(aqi);
+    updateStandardsTable(currentValues);
     checkAlerts(currentValues);
 
     // Process forecast data for charts
@@ -353,6 +363,7 @@ function processSimulatedData() {
     updatePollutantMetrics(currentValues);
     updateWeather(currentValues);
     updateHealthRecommendations(currentValues.aqi);
+    updateStandardsTable(currentValues);
     checkAlerts(currentValues);
     generateSimulatedChartData(currentValues);
 
@@ -487,11 +498,20 @@ function initCharts() {
                     borderWidth: 2
                 },
                 {
-                    label: 'WHO Guideline',
+                    label: 'WHO Guideline (15)',
                     data: [],
                     borderColor: 'rgba(255,255,255,0.3)',
                     borderDash: [5, 5],
                     borderWidth: 1,
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: 'NCEC Standard (35)',
+                    data: [],
+                    borderColor: 'rgba(0, 200, 83, 0.5)',
+                    borderDash: [8, 4],
+                    borderWidth: 1.5,
                     pointRadius: 0,
                     fill: false
                 }
@@ -524,11 +544,20 @@ function initCharts() {
                     borderWidth: 2
                 },
                 {
-                    label: 'WHO Guideline',
+                    label: 'WHO Guideline (45)',
                     data: [],
                     borderColor: 'rgba(255,255,255,0.3)',
                     borderDash: [5, 5],
                     borderWidth: 1,
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: 'NCEC Standard (340)',
+                    data: [],
+                    borderColor: 'rgba(0, 200, 83, 0.5)',
+                    borderDash: [8, 4],
+                    borderWidth: 1.5,
                     pointRadius: 0,
                     fill: false
                 }
@@ -571,6 +600,16 @@ function initCharts() {
                     borderDash: [3, 3],
                     borderRadius: 6,
                     borderSkipped: false
+                },
+                {
+                    label: 'NCEC Standard',
+                    data: [35, 340, 120, 660, 365, 10],
+                    backgroundColor: 'rgba(0, 200, 83, 0.08)',
+                    borderColor: 'rgba(0, 200, 83, 0.4)',
+                    borderWidth: 1,
+                    borderDash: [6, 3],
+                    borderRadius: 6,
+                    borderSkipped: false
                 }
             ]
         },
@@ -611,10 +650,12 @@ function updateChartsWithForecast(daily) {
         const labels = daily.pm25.map(d => d.day);
         const avgValues = daily.pm25.map(d => d.avg);
         const whoLine = labels.map(() => CONFIG.WHO_LIMITS.pm25);
+        const ncecLine = labels.map(() => CONFIG.NCEC_LIMITS.pm25);
 
         state.charts.pm25.data.labels = labels;
         state.charts.pm25.data.datasets[0].data = avgValues;
         state.charts.pm25.data.datasets[1].data = whoLine;
+        state.charts.pm25.data.datasets[2].data = ncecLine;
         state.charts.pm25.update('none');
     }
 
@@ -623,10 +664,12 @@ function updateChartsWithForecast(daily) {
         const labels = daily.pm10.map(d => d.day);
         const avgValues = daily.pm10.map(d => d.avg);
         const whoLine = labels.map(() => CONFIG.WHO_LIMITS.pm10);
+        const ncecLine = labels.map(() => CONFIG.NCEC_LIMITS.pm10);
 
         state.charts.pm10.data.labels = labels;
         state.charts.pm10.data.datasets[0].data = avgValues;
         state.charts.pm10.data.datasets[1].data = whoLine;
+        state.charts.pm10.data.datasets[2].data = ncecLine;
         state.charts.pm10.update('none');
     }
 
@@ -671,21 +714,62 @@ function generateSimulatedChartData(currentValues) {
 
     const whoLinePM25 = labels.map(() => CONFIG.WHO_LIMITS.pm25);
     const whoLinePM10 = labels.map(() => CONFIG.WHO_LIMITS.pm10);
+    const ncecLinePM25 = labels.map(() => CONFIG.NCEC_LIMITS.pm25);
+    const ncecLinePM10 = labels.map(() => CONFIG.NCEC_LIMITS.pm10);
 
     // Update PM2.5 chart
     state.charts.pm25.data.labels = labels;
     state.charts.pm25.data.datasets[0].data = pm25Data;
     state.charts.pm25.data.datasets[1].data = whoLinePM25;
+    state.charts.pm25.data.datasets[2].data = ncecLinePM25;
     state.charts.pm25.update('none');
 
     // Update PM10 chart
     state.charts.pm10.data.labels = labels;
     state.charts.pm10.data.datasets[0].data = pm10Data;
     state.charts.pm10.data.datasets[1].data = whoLinePM10;
+    state.charts.pm10.data.datasets[2].data = ncecLinePM10;
     state.charts.pm10.update('none');
 
     // Update all pollutants bar chart
     updateAllPollutantsChart(currentValues);
+}
+
+function updateStandardsTable(values) {
+    const pollutants = [
+        { key: 'pm25', unit: '' },
+        { key: 'pm10', unit: '' },
+        { key: 'o3', unit: '' },
+        { key: 'no2', unit: '' },
+        { key: 'so2', unit: '' },
+        { key: 'co', unit: '' }
+    ];
+
+    pollutants.forEach(p => {
+        const valEl = document.getElementById(`std-${p.key}-val`);
+        const statusEl = document.getElementById(`std-${p.key}-status`);
+        if (!valEl || !statusEl) return;
+
+        const val = values[p.key];
+        if (val === null || val === undefined) {
+            valEl.textContent = 'N/A';
+            statusEl.innerHTML = '<span class="compliance-badge">--</span>';
+            return;
+        }
+
+        valEl.textContent = typeof val === 'number' && val % 1 !== 0 ? val.toFixed(1) : val;
+
+        const whoLimit = CONFIG.WHO_LIMITS[p.key];
+        const ncecLimit = CONFIG.NCEC_LIMITS[p.key];
+
+        if (val > ncecLimit) {
+            statusEl.innerHTML = '<span class="compliance-badge exceeds-ncec"><i class="fas fa-circle-xmark"></i> Exceeds NCEC</span>';
+        } else if (val > whoLimit) {
+            statusEl.innerHTML = '<span class="compliance-badge exceeds-who"><i class="fas fa-triangle-exclamation"></i> Exceeds WHO</span>';
+        } else {
+            statusEl.innerHTML = '<span class="compliance-badge compliant"><i class="fas fa-circle-check"></i> Compliant</span>';
+        }
+    });
 }
 
 function updateAllPollutantsChart(values) {

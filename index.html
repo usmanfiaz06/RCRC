@@ -186,7 +186,8 @@
                     <h2><i class="fas fa-chart-line"></i> PM2.5 Trend (24h)</h2>
                     <div class="chart-legend-inline">
                         <span class="legend-dot pm25-dot"></span> PM2.5
-                        <span class="legend-line who-line"></span> WHO Guideline (15 &micro;g/m&sup3;)
+                        <span class="legend-line who-line"></span> WHO (15)
+                        <span class="legend-line ncec-line"></span> NCEC (35)
                     </div>
                 </div>
                 <div class="card-body chart-container">
@@ -200,7 +201,8 @@
                     <h2><i class="fas fa-chart-area"></i> PM10 Trend (24h)</h2>
                     <div class="chart-legend-inline">
                         <span class="legend-dot pm10-dot"></span> PM10
-                        <span class="legend-line who-line"></span> WHO Guideline (45 &micro;g/m&sup3;)
+                        <span class="legend-line who-line"></span> WHO (45)
+                        <span class="legend-line ncec-line"></span> NCEC (340)
                     </div>
                 </div>
                 <div class="card-body chart-container">
@@ -222,6 +224,89 @@
                 </div>
                 <div class="card-body chart-container chart-container-lg">
                     <canvas id="all-pollutants-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regulatory Standards Comparison -->
+        <div class="dashboard-row">
+            <div class="card full-width standards-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-scale-balanced"></i> Regulatory Standards Comparison</h2>
+                    <div class="standards-badges">
+                        <span class="std-badge who-badge"><i class="fas fa-globe"></i> WHO 2021</span>
+                        <span class="std-badge ncec-badge"><i class="fas fa-landmark"></i> NCEC Saudi</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="standards-table-wrapper">
+                        <table class="standards-table">
+                            <thead>
+                                <tr>
+                                    <th>Pollutant</th>
+                                    <th>Averaging Period</th>
+                                    <th class="who-col">WHO Guideline</th>
+                                    <th class="ncec-col">NCEC Standard</th>
+                                    <th>Current Value</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="standards-tbody">
+                                <tr>
+                                    <td><span class="pollutant-tag pm25-tag">PM2.5</span></td>
+                                    <td>24-hour</td>
+                                    <td class="who-col">15 &micro;g/m&sup3;</td>
+                                    <td class="ncec-col">35 &micro;g/m&sup3;</td>
+                                    <td class="current-val" id="std-pm25-val">--</td>
+                                    <td id="std-pm25-status">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="pollutant-tag pm10-tag">PM10</span></td>
+                                    <td>24-hour</td>
+                                    <td class="who-col">45 &micro;g/m&sup3;</td>
+                                    <td class="ncec-col">340 &micro;g/m&sup3;</td>
+                                    <td class="current-val" id="std-pm10-val">--</td>
+                                    <td id="std-pm10-status">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="pollutant-tag o3-tag">O&#8323;</span></td>
+                                    <td>8-hour</td>
+                                    <td class="who-col">100 &micro;g/m&sup3;</td>
+                                    <td class="ncec-col">120 &micro;g/m&sup3;</td>
+                                    <td class="current-val" id="std-o3-val">--</td>
+                                    <td id="std-o3-status">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="pollutant-tag no2-tag">NO&#8322;</span></td>
+                                    <td>24-hour / 1-hour</td>
+                                    <td class="who-col">25 &micro;g/m&sup3;</td>
+                                    <td class="ncec-col">660 &micro;g/m&sup3;</td>
+                                    <td class="current-val" id="std-no2-val">--</td>
+                                    <td id="std-no2-status">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="pollutant-tag so2-tag">SO&#8322;</span></td>
+                                    <td>24-hour</td>
+                                    <td class="who-col">40 &micro;g/m&sup3;</td>
+                                    <td class="ncec-col">365 &micro;g/m&sup3;</td>
+                                    <td class="current-val" id="std-so2-val">--</td>
+                                    <td id="std-so2-status">--</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="pollutant-tag co-tag">CO</span></td>
+                                    <td>24-hour / 8-hour</td>
+                                    <td class="who-col">4 mg/m&sup3;</td>
+                                    <td class="ncec-col">10 mg/m&sup3;</td>
+                                    <td class="current-val" id="std-co-val">--</td>
+                                    <td id="std-co-status">--</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="standards-note">
+                        <i class="fas fa-info-circle"></i>
+                        <span>WHO guidelines represent ideal health targets. NCEC standards are Saudi Arabia's legally enforceable limits under the Executive Regulation for Air Quality.</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -326,7 +411,11 @@
                 <a href="https://aq.riyadhenv.gov.sa/" target="_blank" rel="noopener">Riyadh Air Quality</a> |
                 <a href="https://aqicn.org/city/riyadh/" target="_blank" rel="noopener">WAQI/AQICN</a>
             </p>
-            <p class="footer-note">Auto-refreshes every 5 minutes. WHO Guidelines: PM2.5 &le; 15 &micro;g/m&sup3;, PM10 &le; 45 &micro;g/m&sup3; (24-hour mean).</p>
+            <p class="footer-note">
+                Standards: <strong>WHO 2021</strong> &mdash; PM2.5 &le; 15, PM10 &le; 45 &micro;g/m&sup3; |
+                <strong>NCEC Saudi</strong> &mdash; PM2.5 &le; 35, PM10 &le; 340 &micro;g/m&sup3; (24h mean).
+                Auto-refreshes every 5 minutes.
+            </p>
         </div>
     </footer>
 
