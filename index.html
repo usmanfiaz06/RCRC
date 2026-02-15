@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wadi Hanifa Air Quality Dashboard - Riyadh</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+    <!-- Notification Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo-area">
+                <i class="fas fa-wind logo-icon"></i>
+                <div>
+                    <h1>Wadi Hanifa Air Quality</h1>
+                    <p class="subtitle">Real-Time Monitoring Dashboard &mdash; Riyadh, Saudi Arabia</p>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                <span>LIVE</span>
+            </div>
+            <div class="last-updated">
+                <i class="fas fa-clock"></i>
+                <span id="last-updated-time">Loading...</span>
+            </div>
+            <button id="notification-btn" class="btn btn-icon" title="Enable Air Quality Alerts">
+                <i class="fas fa-bell"></i>
+            </button>
+            <button id="refresh-btn" class="btn btn-icon" title="Refresh Data">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Station Info Bar -->
+    <section class="station-info-bar">
+        <div class="station-info-grid">
+            <div class="station-info-item">
+                <i class="fas fa-map-marker-alt"></i>
+                <div>
+                    <span class="info-label">Station</span>
+                    <span class="info-value">Wadi Hanifa</span>
+                </div>
+            </div>
+            <div class="station-info-item">
+                <i class="fas fa-tag"></i>
+                <div>
+                    <span class="info-label">Index</span>
+                    <span class="info-value">7</span>
+                </div>
+            </div>
+            <div class="station-info-item">
+                <i class="fas fa-layer-group"></i>
+                <div>
+                    <span class="info-label">Classification</span>
+                    <span class="info-value">Background Station</span>
+                </div>
+            </div>
+            <div class="station-info-item">
+                <i class="fas fa-mountain"></i>
+                <div>
+                    <span class="info-label">Altitude</span>
+                    <span class="info-value">672 MASL</span>
+                </div>
+            </div>
+            <div class="station-info-item location-item">
+                <i class="fas fa-compass"></i>
+                <div>
+                    <span class="info-label">Location</span>
+                    <span class="info-value">Government Compound ~23km NW of Riyadh Centre, adjacent to Alba Dam</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Dashboard -->
+    <main class="dashboard">
+        <!-- Top Row: AQI Gauge + Key Metrics -->
+        <div class="dashboard-row top-row">
+            <!-- AQI Gauge Card -->
+            <div class="card aqi-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-gauge-high"></i> Air Quality Index</h2>
+                </div>
+                <div class="card-body">
+                    <div class="aqi-display">
+                        <div class="aqi-circle" id="aqi-circle">
+                            <div class="aqi-value" id="aqi-value">--</div>
+                            <div class="aqi-label" id="aqi-label">Loading</div>
+                        </div>
+                        <div class="aqi-scale">
+                            <div class="scale-segment good">0-50<br><small>Good</small></div>
+                            <div class="scale-segment moderate">51-100<br><small>Moderate</small></div>
+                            <div class="scale-segment unhealthy-sg">101-150<br><small>Unhealthy (SG)</small></div>
+                            <div class="scale-segment unhealthy">151-200<br><small>Unhealthy</small></div>
+                            <div class="scale-segment very-unhealthy">201-300<br><small>Very Unhealthy</small></div>
+                            <div class="scale-segment hazardous">300+<br><small>Hazardous</small></div>
+                        </div>
+                    </div>
+                    <div class="aqi-message" id="aqi-message">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Fetching air quality data...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Pollutant Cards -->
+            <div class="metrics-grid">
+                <div class="card metric-card pm25-card" id="pm25-metric">
+                    <div class="metric-icon"><i class="fas fa-smog"></i></div>
+                    <div class="metric-content">
+                        <span class="metric-name">PM2.5</span>
+                        <span class="metric-value" id="pm25-value">--</span>
+                        <span class="metric-unit">&micro;g/m&sup3;</span>
+                    </div>
+                    <div class="metric-bar" id="pm25-bar"></div>
+                </div>
+
+                <div class="card metric-card pm10-card" id="pm10-metric">
+                    <div class="metric-icon"><i class="fas fa-cloud-meatball"></i></div>
+                    <div class="metric-content">
+                        <span class="metric-name">PM10</span>
+                        <span class="metric-value" id="pm10-value">--</span>
+                        <span class="metric-unit">&micro;g/m&sup3;</span>
+                    </div>
+                    <div class="metric-bar" id="pm10-bar"></div>
+                </div>
+
+                <div class="card metric-card o3-card" id="o3-metric">
+                    <div class="metric-icon"><i class="fas fa-sun"></i></div>
+                    <div class="metric-content">
+                        <span class="metric-name">O&#8323; (Ozone)</span>
+                        <span class="metric-value" id="o3-value">--</span>
+                        <span class="metric-unit">&micro;g/m&sup3;</span>
+                    </div>
+                    <div class="metric-bar" id="o3-bar"></div>
+                </div>
+
+                <div class="card metric-card no2-card" id="no2-metric">
+                    <div class="metric-icon"><i class="fas fa-industry"></i></div>
+                    <div class="metric-content">
+                        <span class="metric-name">NO&#8322;</span>
+                        <span class="metric-value" id="no2-value">--</span>
+                        <span class="metric-unit">&micro;g/m&sup3;</span>
+                    </div>
+                    <div class="metric-bar" id="no2-bar"></div>
+                </div>
+
+                <div class="card metric-card so2-card" id="so2-metric">
+                    <div class="metric-icon"><i class="fas fa-flask"></i></div>
+                    <div class="metric-content">
+                        <span class="metric-name">SO&#8322;</span>
+                        <span class="metric-value" id="so2-value">--</span>
+                        <span class="metric-unit">&micro;g/m&sup3;</span>
+                    </div>
+                    <div class="metric-bar" id="so2-bar"></div>
+                </div>
+
+                <div class="card metric-card co-card" id="co-metric">
+                    <div class="metric-icon"><i class="fas fa-fire"></i></div>
+                    <div class="metric-content">
+                        <span class="metric-name">CO</span>
+                        <span class="metric-value" id="co-value">--</span>
+                        <span class="metric-unit">mg/m&sup3;</span>
+                    </div>
+                    <div class="metric-bar" id="co-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="dashboard-row charts-row">
+            <!-- PM2.5 Chart -->
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-line"></i> PM2.5 Trend (24h)</h2>
+                    <div class="chart-legend-inline">
+                        <span class="legend-dot pm25-dot"></span> PM2.5
+                        <span class="legend-line who-line"></span> WHO Guideline (15 &micro;g/m&sup3;)
+                    </div>
+                </div>
+                <div class="card-body chart-container">
+                    <canvas id="pm25-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- PM10 Chart -->
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-area"></i> PM10 Trend (24h)</h2>
+                    <div class="chart-legend-inline">
+                        <span class="legend-dot pm10-dot"></span> PM10
+                        <span class="legend-line who-line"></span> WHO Guideline (45 &micro;g/m&sup3;)
+                    </div>
+                </div>
+                <div class="card-body chart-container">
+                    <canvas id="pm10-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Pollutants Chart -->
+        <div class="dashboard-row">
+            <div class="card chart-card full-width">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-bar"></i> All Pollutants - Daily Comparison</h2>
+                    <div class="chart-controls">
+                        <button class="btn btn-sm active" data-range="24h">24H</button>
+                        <button class="btn btn-sm" data-range="7d">7D</button>
+                        <button class="btn btn-sm" data-range="30d">30D</button>
+                    </div>
+                </div>
+                <div class="card-body chart-container chart-container-lg">
+                    <canvas id="all-pollutants-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather & Additional Info Row -->
+        <div class="dashboard-row bottom-row">
+            <!-- Weather Conditions -->
+            <div class="card weather-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-cloud-sun"></i> Weather Conditions</h2>
+                </div>
+                <div class="card-body">
+                    <div class="weather-grid">
+                        <div class="weather-item">
+                            <i class="fas fa-temperature-half"></i>
+                            <span class="weather-label">Temperature</span>
+                            <span class="weather-value" id="temp-value">--&deg;C</span>
+                        </div>
+                        <div class="weather-item">
+                            <i class="fas fa-droplet"></i>
+                            <span class="weather-label">Humidity</span>
+                            <span class="weather-value" id="humidity-value">--%</span>
+                        </div>
+                        <div class="weather-item">
+                            <i class="fas fa-wind"></i>
+                            <span class="weather-label">Wind Speed</span>
+                            <span class="weather-value" id="wind-value">-- m/s</span>
+                        </div>
+                        <div class="weather-item">
+                            <i class="fas fa-gauge-simple"></i>
+                            <span class="weather-label">Pressure</span>
+                            <span class="weather-value" id="pressure-value">-- hPa</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alert Settings -->
+            <div class="card alerts-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-bell"></i> Air Quality Alerts</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert-settings">
+                        <div class="alert-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-pm25-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>PM2.5 Alert (above <input type="number" id="alert-pm25-threshold" class="threshold-input" value="35" min="0" max="500"> &micro;g/m&sup3;)</span>
+                        </div>
+                        <div class="alert-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-pm10-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>PM10 Alert (above <input type="number" id="alert-pm10-threshold" class="threshold-input" value="150" min="0" max="1000"> &micro;g/m&sup3;)</span>
+                        </div>
+                        <div class="alert-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="alert-aqi-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>AQI Alert (above <input type="number" id="alert-aqi-threshold" class="threshold-input" value="100" min="0" max="500">)</span>
+                        </div>
+                    </div>
+                    <div class="alert-log" id="alert-log">
+                        <div class="alert-log-header">
+                            <span>Recent Alerts</span>
+                            <button class="btn btn-sm" id="clear-alerts-btn">Clear</button>
+                        </div>
+                        <div class="alert-log-body" id="alert-log-body">
+                            <p class="no-alerts">No alerts yet. Alerts will appear when thresholds are exceeded.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Health Recommendations -->
+            <div class="card health-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-heart-pulse"></i> Health Recommendations</h2>
+                </div>
+                <div class="card-body">
+                    <div id="health-recommendations">
+                        <div class="health-item">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Loading recommendations based on current air quality...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>
+                Data Sources:
+                <a href="https://opendata.rcrc.gov.sa/explore/dataset/air-quality-stations-in-riyadh-2025/" target="_blank" rel="noopener">RCRC Open Data Portal</a> |
+                <a href="https://aq.riyadhenv.gov.sa/" target="_blank" rel="noopener">Riyadh Air Quality</a> |
+                <a href="https://aqicn.org/city/riyadh/" target="_blank" rel="noopener">WAQI/AQICN</a>
+            </p>
+            <p class="footer-note">Auto-refreshes every 5 minutes. WHO Guidelines: PM2.5 &le; 15 &micro;g/m&sup3;, PM10 &le; 45 &micro;g/m&sup3; (24-hour mean).</p>
+        </div>
+    </footer>
+
+    <!-- Notification Permission Modal -->
+    <div class="modal" id="notification-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-bell"></i> Enable Air Quality Alerts</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Get browser notifications when air quality deteriorates beyond safe levels.</p>
+                <ul>
+                    <li>PM2.5 exceeds your set threshold</li>
+                    <li>PM10 exceeds your set threshold</li>
+                    <li>AQI enters unhealthy ranges</li>
+                </ul>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="enable-notifications-btn">
+                        <i class="fas fa-bell"></i> Enable Notifications
+                    </button>
+                    <button class="btn btn-secondary" id="dismiss-notifications-btn">Maybe Later</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
