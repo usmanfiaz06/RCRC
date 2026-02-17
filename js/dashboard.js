@@ -3,16 +3,21 @@
  * Real-time monitoring for Riyadh's Wadi Hanifa background station
  *
  * Data Sources:
+ * - GACS Cloud (api.gacscloud.com): Primary real-time air quality data
+ * - WAQI (aqicn.org): Fallback real-time air quality readings
  * - RCRC Open Data Portal: Station metadata
- * - WAQI (aqicn.org): Real-time air quality readings
  */
 
 // ===== CONFIGURATION =====
 const CONFIG = {
+    // GACS Cloud API (Primary) — Gulf Advanced Control Systems
+    // Real-time air quality data from Saudi monitoring stations
+    GACS_API: 'https://api.gacscloud.com/api/RealTimeData/GetStationSummary',
+
     // RCRC Open Data API for station info
     RCRC_API: 'https://opendata.rcrc.gov.sa/api/explore/v2.1/catalog/datasets/air-quality-stations-in-riyadh-2025/records',
 
-    // WAQI API for real-time AQ data
+    // WAQI API for real-time AQ data (Fallback)
     // Register for a free token at: https://aqicn.org/data-platform/token/
     WAQI_API_BASE: 'https://api.waqi.info',
     WAQI_TOKEN: '40ab14872a11434ab8fa725d0ce972b474f56ced',
@@ -493,16 +498,37 @@ function saveSettings() {
 // ===== DATA FETCHING =====
 async function fetchAllData() {
     try {
-        const [waqiData, rcrcData] = await Promise.allSettled([
+        // Fetch all data sources concurrently
+        // GACS Cloud is the primary source, WAQI is the fallback
+        const [gacsData, waqiData, rcrcData] = await Promise.allSettled([
+            fetchGACSData(),
             fetchWAQIData(),
             fetchRCRCStationData()
         ]);
 
-        if (waqiData.status === 'fulfilled' && waqiData.value) {
+        let dataProcessed = false;
+
+        // Primary: GACS Cloud API
+        if (gacsData.status === 'fulfilled' && gacsData.value) {
+            const mapped = processGACSResponse(gacsData.value);
+            if (mapped && (mapped.aqi !== null || mapped.pm25 !== null || mapped.pm10 !== null)) {
+                processGACSData(mapped);
+                dataProcessed = true;
+                console.log('Data source: GACS Cloud API');
+            }
+        }
+
+        // Fallback: WAQI API
+        if (!dataProcessed && waqiData.status === 'fulfilled' && waqiData.value) {
             processWAQIData(waqiData.value);
-        } else {
-            // Fallback: generate simulated data so the dashboard still demonstrates functionality
+            dataProcessed = true;
+            console.log('Data source: WAQI API (fallback)');
+        }
+
+        // Last resort: simulated data
+        if (!dataProcessed) {
             processSimulatedData();
+            console.log('Data source: Simulated (all APIs unavailable)');
         }
 
         state.lastFetchTime = new Date();
@@ -538,6 +564,81 @@ async function fetchRCRCStationData() {
         console.warn('RCRC API unavailable:', e.message);
         return null;
     }
+}
+
+async function fetchGACSData() {
+    const response = await fetch(CONFIG.GACS_API);
+    if (!response.ok) throw new Error(`GACS API error: ${response.status}`);
+    const data = await response.json();
+    return data;
+}
+
+/**
+ * Map GACS API response to the dashboard's internal data model.
+ *
+ * The GACS GetStationSummary endpoint returns station data that may use
+ * various field naming conventions. This function normalises the response
+ * into the { aqi, pm25, pm10, o3, no2, so2, co, temp, humidity, wind, pressure }
+ * shape expected by the rest of the dashboard.
+ *
+ * If the response is an array of stations we look for the configured primary
+ * station (by name, index, or coordinates). If it is a single object we use
+ * it directly.
+ */
+function processGACSResponse(raw) {
+    // Handle both array-of-stations and single-station responses
+    let station = raw;
+
+    if (Array.isArray(raw)) {
+        // Try to find our primary station by name or index
+        station = raw.find(s =>
+            (s.stationName && s.stationName.toLowerCase().includes('wadi hanifa')) ||
+            (s.station_name && s.station_name.toLowerCase().includes('wadi hanifa')) ||
+            (s.name && s.name.toLowerCase().includes('wadi hanifa')) ||
+            (s.StationName && s.StationName.toLowerCase().includes('wadi hanifa')) ||
+            (s.stationIndex === CONFIG.STATION.index) ||
+            (s.station_index === CONFIG.STATION.index) ||
+            (s.StationIndex === CONFIG.STATION.index) ||
+            (s.index === CONFIG.STATION.index)
+        );
+        // Fallback: use first station if primary not found
+        if (!station && raw.length > 0) {
+            station = raw[0];
+            console.warn('GACS: Primary station not found in response, using first station');
+        }
+    }
+
+    // If response has a wrapper property (e.g. { data: [...] }, { result: [...] }, { stations: [...] })
+    if (station && !station.aqi && !station.AQI && !station.pm25 && !station.PM25) {
+        const wrapper = station.data || station.result || station.stations || station.Data || station.Result || station.Stations;
+        if (wrapper) {
+            return processGACSResponse(wrapper);
+        }
+    }
+
+    if (!station) return null;
+
+    // Flexible field extraction — handles camelCase, PascalCase, snake_case, and UPPER
+    const get = (...keys) => {
+        for (const key of keys) {
+            if (station[key] !== undefined && station[key] !== null) return Number(station[key]);
+        }
+        return null;
+    };
+
+    return {
+        aqi:      get('aqi', 'AQI', 'Aqi', 'air_quality_index', 'airQualityIndex', 'AirQualityIndex'),
+        pm25:     get('pm25', 'PM25', 'pm2_5', 'PM2_5', 'pm25Value', 'PM25Value', 'Pm25', 'pm2p5', 'PM2P5'),
+        pm10:     get('pm10', 'PM10', 'Pm10', 'pm10Value', 'PM10Value'),
+        o3:       get('o3', 'O3', 'ozone', 'Ozone', 'o3Value', 'O3Value'),
+        no2:      get('no2', 'NO2', 'No2', 'no2Value', 'NO2Value', 'nitrogenDioxide', 'NitrogenDioxide'),
+        so2:      get('so2', 'SO2', 'So2', 'so2Value', 'SO2Value', 'sulfurDioxide', 'SulfurDioxide'),
+        co:       get('co', 'CO', 'Co', 'coValue', 'COValue', 'carbonMonoxide', 'CarbonMonoxide'),
+        temp:     get('temperature', 'Temperature', 'temp', 'Temp', 'TEMP'),
+        humidity: get('humidity', 'Humidity', 'relativeHumidity', 'RelativeHumidity', 'rh', 'RH'),
+        wind:     get('windSpeed', 'WindSpeed', 'wind_speed', 'wind', 'Wind', 'ws', 'WS'),
+        pressure: get('pressure', 'Pressure', 'barometricPressure', 'BarometricPressure', 'bp', 'BP')
+    };
 }
 
 // ===== DATA PROCESSING =====
@@ -584,6 +685,56 @@ function processWAQIData(data) {
     updateBreakdownBars(currentValues);
 }
 
+function processGACSData(mapped) {
+    // mapped is already in { aqi, pm25, pm10, o3, no2, so2, co, temp, humidity, wind, pressure } format
+    // If AQI is missing but we have PM2.5, compute an approximate AQI
+    if (mapped.aqi === null && mapped.pm25 !== null) {
+        mapped.aqi = computeApproxAQI(mapped.pm25);
+    }
+
+    state.currentData = mapped;
+
+    // Update all dashboard sections
+    updateAQIDisplay(mapped.aqi || 0);
+    updatePollutantMetrics(mapped);
+    updateWeather(mapped);
+    updateHealthRecommendations(mapped.aqi || 0);
+    updateStandardsTable(mapped);
+    checkAlerts(mapped);
+
+    // GACS doesn't provide historical/forecast data, so generate chart trends from current values
+    generateSimulatedChartData(mapped);
+
+    // Update analysis charts
+    updateRadarChart(mapped);
+    updateDoughnutChart(mapped);
+    updateBreakdownBars(mapped);
+
+    showToast('success', 'GACS Cloud Data',
+        'Receiving real-time data from GACS Cloud monitoring network.');
+}
+
+/**
+ * Approximate AQI from PM2.5 concentration using US EPA breakpoints.
+ * Used when GACS API returns pollutant concentrations but not a computed AQI.
+ */
+function computeApproxAQI(pm25) {
+    const breakpoints = [
+        { cLow: 0,    cHigh: 12,    iLow: 0,   iHigh: 50 },
+        { cLow: 12.1, cHigh: 35.4,  iLow: 51,  iHigh: 100 },
+        { cLow: 35.5, cHigh: 55.4,  iLow: 101, iHigh: 150 },
+        { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 },
+        { cLow: 150.5, cHigh: 250.4, iLow: 201, iHigh: 300 },
+        { cLow: 250.5, cHigh: 500.4, iLow: 301, iHigh: 500 }
+    ];
+    for (const bp of breakpoints) {
+        if (pm25 >= bp.cLow && pm25 <= bp.cHigh) {
+            return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (pm25 - bp.cLow) + bp.iLow);
+        }
+    }
+    return pm25 > 500 ? 500 : 0;
+}
+
 function processSimulatedData() {
     // Generate realistic simulated data for Riyadh's typical air quality
     // Riyadh often has elevated PM10 due to dust and PM2.5 from urban activity
@@ -617,8 +768,8 @@ function processSimulatedData() {
     updateDoughnutChart(currentValues);
     updateBreakdownBars(currentValues);
 
-    showToast('info', 'Live Data Mode',
-        'Fetching real-time data from WAQI network. If the API is unreachable, simulated Riyadh-typical values are shown. Register for a free API token at aqicn.org for reliable access.');
+    showToast('info', 'Simulated Data',
+        'GACS Cloud and WAQI APIs are currently unreachable. Displaying simulated Riyadh-typical values.');
 }
 
 function randomBetween(min, max) {
@@ -1549,4 +1700,4 @@ function startAutoRefresh() {
 }
 
 // ===== EXPOSE FOR DEBUGGING =====
-window.AQDashboard = { state, CONFIG, fetchAllData };
+window.AQDashboard = { state, CONFIG, fetchAllData, fetchGACSData, processGACSResponse };
