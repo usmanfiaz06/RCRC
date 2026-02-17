@@ -532,31 +532,32 @@ a:hover {
 
 .aqi-scale {
     display: flex;
-    gap: 2px;
+    gap: 3px;
     width: 100%;
 }
 
 .scale-segment {
     flex: 1;
     text-align: center;
-    padding: 0.3rem 0.15rem;
-    font-size: 0.6rem;
-    font-weight: 600;
+    padding: 0.45rem 0.2rem;
+    font-size: 0.65rem;
+    font-weight: 700;
     border-radius: 4px;
-    color: #000;
+    line-height: 1.3;
 }
 
 .scale-segment small {
-    font-weight: 400;
+    font-weight: 500;
     font-size: 0.55rem;
+    display: block;
 }
 
-.scale-segment.good { background: var(--aqi-good); }
-.scale-segment.moderate { background: var(--aqi-moderate); }
-.scale-segment.unhealthy-sg { background: var(--aqi-unhealthy-sg); }
-.scale-segment.unhealthy { background: var(--aqi-unhealthy); color: #fff; }
-.scale-segment.very-unhealthy { background: var(--aqi-very-unhealthy); color: #fff; }
-.scale-segment.hazardous { background: var(--aqi-hazardous); color: #fff; }
+.scale-segment.good { background: #00c853; color: #fff; }
+.scale-segment.moderate { background: #e6b800; color: #1a1a1a; }
+.scale-segment.unhealthy-sg { background: #e67300; color: #fff; }
+.scale-segment.unhealthy { background: #d32f2f; color: #fff; }
+.scale-segment.very-unhealthy { background: #7b1fa2; color: #fff; }
+.scale-segment.hazardous { background: #7e0023; color: #fff; }
 
 .aqi-message {
     margin-top: 0.75rem;
@@ -1571,11 +1572,12 @@ input:checked + .slider:before {
     border-color: rgba(0, 0, 0, 0.3);
 }
 
-[data-theme="light"] .scale-segment.unhealthy,
-[data-theme="light"] .scale-segment.very-unhealthy,
-[data-theme="light"] .scale-segment.hazardous {
-    color: #fff;
-}
+[data-theme="light"] .scale-segment.good { background: #2e7d32; color: #fff; }
+[data-theme="light"] .scale-segment.moderate { background: #f9a825; color: #1a1a1a; }
+[data-theme="light"] .scale-segment.unhealthy-sg { background: #e65100; color: #fff; }
+[data-theme="light"] .scale-segment.unhealthy { background: #c62828; color: #fff; }
+[data-theme="light"] .scale-segment.very-unhealthy { background: #6a1b9a; color: #fff; }
+[data-theme="light"] .scale-segment.hazardous { background: #5c0017; color: #fff; }
 
 [data-theme="light"] .toast-warning {
     background: linear-gradient(135deg, #fffbeb, #fef3c7);
@@ -1606,8 +1608,17 @@ input:checked + .slider:before {
     background: rgba(0, 0, 0, 0.04);
 }
 
+[data-theme="light"] .aqi-value {
+    color: var(--text-primary);
+}
+
+[data-theme="light"] .aqi-label {
+    color: var(--text-secondary);
+}
+
 [data-theme="light"] .aqi-message {
-    background: rgba(43, 108, 176, 0.06);
+    background: rgba(43, 108, 176, 0.08);
+    color: var(--text-primary);
 }
 
 [data-theme="light"] .standards-note {
