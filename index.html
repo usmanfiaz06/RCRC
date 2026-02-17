@@ -55,14 +55,19 @@
                 <i class="fas fa-map-marker-alt"></i>
                 <div>
                     <span class="info-label">Station</span>
-                    <span class="info-value">Wadi Hanifa</span>
+                    <span class="info-value" id="station-name-display">Wadi Hanifa</span>
                 </div>
             </div>
             <div class="station-info-item">
-                <i class="fas fa-tag"></i>
+                <i class="fas fa-satellite-dish"></i>
                 <div>
-                    <span class="info-label">Index</span>
-                    <span class="info-value">7</span>
+                    <span class="info-label">GACS Station</span>
+                    <select id="gacs-station-select" class="station-select">
+                        <option value="0">EML-1</option>
+                        <option value="1">EML-2</option>
+                        <option value="2">EML-3</option>
+                        <option value="3">EML-4</option>
+                    </select>
                 </div>
             </div>
             <div class="station-info-item">
@@ -445,7 +450,7 @@
                     <h2><i class="fas fa-cloud-sun"></i> Weather Conditions</h2>
                 </div>
                 <div class="card-body">
-                    <div class="weather-grid">
+                    <div class="weather-grid weather-grid-3col">
                         <div class="weather-item">
                             <i class="fas fa-temperature-half"></i>
                             <span class="weather-label">Temperature</span>
@@ -457,9 +462,19 @@
                             <span class="weather-value" id="humidity-value">--%</span>
                         </div>
                         <div class="weather-item">
+                            <i class="fas fa-temperature-arrow-up"></i>
+                            <span class="weather-label">Heat Index</span>
+                            <span class="weather-value" id="heat-index-value">--&deg;C</span>
+                        </div>
+                        <div class="weather-item">
                             <i class="fas fa-wind"></i>
                             <span class="weather-label">Wind Speed</span>
                             <span class="weather-value" id="wind-value">-- m/s</span>
+                        </div>
+                        <div class="weather-item">
+                            <i class="fas fa-compass"></i>
+                            <span class="weather-label">Wind Direction</span>
+                            <span class="weather-value" id="wind-dir-value">--&deg;</span>
                         </div>
                         <div class="weather-item">
                             <i class="fas fa-gauge-simple"></i>
@@ -526,6 +541,54 @@
                 </div>
             </div>
         </div>
+
+        <!-- GACS Environmental Monitoring -->
+        <div class="dashboard-row" id="gacs-env-section">
+            <div class="card full-width">
+                <div class="card-header">
+                    <h2><i class="fas fa-tower-broadcast"></i> Environmental Monitoring (GACS)</h2>
+                    <span class="gacs-data-badge" id="gacs-data-badge">
+                        <i class="fas fa-circle-dot"></i> Awaiting Data
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="env-metrics-grid">
+                        <div class="env-metric-card noise-card">
+                            <div class="env-metric-icon"><i class="fas fa-volume-high"></i></div>
+                            <div class="env-metric-content">
+                                <span class="env-metric-name">Noise Level</span>
+                                <span class="env-metric-value" id="noise-value">--</span>
+                                <span class="env-metric-unit">dB</span>
+                            </div>
+                        </div>
+                        <div class="env-metric-card vibration-card">
+                            <div class="env-metric-icon"><i class="fas fa-wave-square"></i></div>
+                            <div class="env-metric-content">
+                                <span class="env-metric-name">Vmax X</span>
+                                <span class="env-metric-value" id="vmax-x-value">--</span>
+                                <span class="env-metric-unit">mm/s</span>
+                            </div>
+                        </div>
+                        <div class="env-metric-card vibration-card">
+                            <div class="env-metric-icon"><i class="fas fa-wave-square"></i></div>
+                            <div class="env-metric-content">
+                                <span class="env-metric-name">Vmax Y</span>
+                                <span class="env-metric-value" id="vmax-y-value">--</span>
+                                <span class="env-metric-unit">mm/s</span>
+                            </div>
+                        </div>
+                        <div class="env-metric-card vibration-card">
+                            <div class="env-metric-icon"><i class="fas fa-wave-square"></i></div>
+                            <div class="env-metric-content">
+                                <span class="env-metric-name">Vmax Z</span>
+                                <span class="env-metric-value" id="vmax-z-value">--</span>
+                                <span class="env-metric-unit">mm/s</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Footer -->
@@ -533,9 +596,9 @@
         <div class="footer-content">
             <p>
                 Data Sources:
+                <strong>GACS Cloud</strong> (Primary) |
                 <a href="https://opendata.rcrc.gov.sa/explore/dataset/air-quality-stations-in-riyadh-2025/" target="_blank" rel="noopener">RCRC Open Data Portal</a> |
-                <a href="https://aq.riyadhenv.gov.sa/" target="_blank" rel="noopener">Riyadh Air Quality</a> |
-                <a href="https://aqicn.org/city/riyadh/" target="_blank" rel="noopener">WAQI/AQICN</a>
+                <a href="https://aqicn.org/city/riyadh/" target="_blank" rel="noopener">WAQI/AQICN</a> (Fallback)
             </p>
             <p class="footer-note">
                 Standards: <strong>WHO 2021</strong> &mdash; PM2.5 &le; 15, PM10 &le; 45 &micro;g/m&sup3; |

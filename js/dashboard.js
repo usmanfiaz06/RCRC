@@ -61,6 +61,9 @@ const CONFIG = {
     }
 };
 
+// ===== GACS STATIONS =====
+const GACS_STATIONS = ['EML-1', 'EML-2', 'EML-3', 'EML-4'];
+
 // ===== STATE =====
 const state = {
     currentData: null,
@@ -70,7 +73,10 @@ const state = {
     notificationsEnabled: false,
     refreshTimer: null,
     lastFetchTime: null,
-    simulated24h: { pm25: [], pm10: [], aqi: [], labels: [] }
+    simulated24h: { pm25: [], pm10: [], aqi: [], labels: [] },
+    gacsAllStations: null,      // Raw array of all GACS station data
+    gacsSelectedIndex: 0,       // Currently selected GACS station (0 = EML-1)
+    dataSource: null             // 'gacs', 'waqi', or 'simulated'
 };
 
 // ===== DOM ELEMENTS =====
@@ -107,6 +113,15 @@ const DOM = {
     modalClose: document.getElementById('modal-close'),
     clearAlertsBtn: document.getElementById('clear-alerts-btn'),
     themeToggle: document.getElementById('theme-toggle'),
+    gacsStationSelect: document.getElementById('gacs-station-select'),
+    heatIndexValue: document.getElementById('heat-index-value'),
+    windDirValue: document.getElementById('wind-dir-value'),
+    noiseValue: document.getElementById('noise-value'),
+    vmaxXValue: document.getElementById('vmax-x-value'),
+    vmaxYValue: document.getElementById('vmax-y-value'),
+    vmaxZValue: document.getElementById('vmax-z-value'),
+    gacsEnvSection: document.getElementById('gacs-env-section'),
+    gacsDataBadge: document.getElementById('gacs-data-badge'),
     breakdownList: document.getElementById('breakdown-list')
 };
 
@@ -418,6 +433,20 @@ function initEventListeners() {
         });
     });
 
+    // GACS station selector — switch between EML-1..EML-4 without refetching
+    if (DOM.gacsStationSelect) {
+        DOM.gacsStationSelect.addEventListener('change', (e) => {
+            state.gacsSelectedIndex = parseInt(e.target.value, 10);
+            if (state.gacsAllStations && state.gacsAllStations.length > state.gacsSelectedIndex) {
+                const mapped = state.gacsAllStations[state.gacsSelectedIndex];
+                processGACSData(mapped);
+            } else {
+                // Data not available for this station yet — re-fetch
+                fetchAllData();
+            }
+        });
+    }
+
     DOM.notificationBtn.addEventListener('click', () => {
         if (state.notificationsEnabled) {
             state.notificationsEnabled = false;
@@ -521,6 +550,7 @@ async function fetchAllData() {
         // Fallback: WAQI API
         if (!dataProcessed && waqiData.status === 'fulfilled' && waqiData.value) {
             processWAQIData(waqiData.value);
+            state.dataSource = 'waqi';
             dataProcessed = true;
             console.log('Data source: WAQI API (fallback)');
         }
@@ -528,6 +558,7 @@ async function fetchAllData() {
         // Last resort: simulated data
         if (!dataProcessed) {
             processSimulatedData();
+            state.dataSource = 'simulated';
             console.log('Data source: Simulated (all APIs unavailable)');
         }
 
@@ -574,51 +605,27 @@ async function fetchGACSData() {
 }
 
 /**
- * Map GACS API response to the dashboard's internal data model.
- *
- * The GACS GetStationSummary endpoint returns station data that may use
- * various field naming conventions. This function normalises the response
- * into the { aqi, pm25, pm10, o3, no2, so2, co, temp, humidity, wind, pressure }
- * shape expected by the rest of the dashboard.
- *
- * If the response is an array of stations we look for the configured primary
- * station (by name, index, or coordinates). If it is a single object we use
- * it directly.
+ * Unwrap the GACS API response to get the array of station records.
+ * Handles wrapper shapes like { data: [...] }, { result: [...] }, or a plain array.
  */
-function processGACSResponse(raw) {
-    // Handle both array-of-stations and single-station responses
-    let station = raw;
-
-    if (Array.isArray(raw)) {
-        // Try to find our primary station by name or index
-        station = raw.find(s =>
-            (s.stationName && s.stationName.toLowerCase().includes('wadi hanifa')) ||
-            (s.station_name && s.station_name.toLowerCase().includes('wadi hanifa')) ||
-            (s.name && s.name.toLowerCase().includes('wadi hanifa')) ||
-            (s.StationName && s.StationName.toLowerCase().includes('wadi hanifa')) ||
-            (s.stationIndex === CONFIG.STATION.index) ||
-            (s.station_index === CONFIG.STATION.index) ||
-            (s.StationIndex === CONFIG.STATION.index) ||
-            (s.index === CONFIG.STATION.index)
-        );
-        // Fallback: use first station if primary not found
-        if (!station && raw.length > 0) {
-            station = raw[0];
-            console.warn('GACS: Primary station not found in response, using first station');
-        }
+function unwrapGACSResponse(raw) {
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') {
+        const wrapper = raw.data || raw.result || raw.stations || raw.Data || raw.Result || raw.Stations;
+        if (Array.isArray(wrapper)) return wrapper;
     }
+    // Single station object — wrap it
+    if (raw && typeof raw === 'object') return [raw];
+    return [];
+}
 
-    // If response has a wrapper property (e.g. { data: [...] }, { result: [...] }, { stations: [...] })
-    if (station && !station.aqi && !station.AQI && !station.pm25 && !station.PM25) {
-        const wrapper = station.data || station.result || station.stations || station.Data || station.Result || station.Stations;
-        if (wrapper) {
-            return processGACSResponse(wrapper);
-        }
-    }
-
+/**
+ * Map a single GACS station record to the dashboard's internal data model.
+ * Handles camelCase, PascalCase, snake_case, and UPPER field names.
+ */
+function mapGACSStation(station) {
     if (!station) return null;
 
-    // Flexible field extraction — handles camelCase, PascalCase, snake_case, and UPPER
     const get = (...keys) => {
         for (const key of keys) {
             if (station[key] !== undefined && station[key] !== null) return Number(station[key]);
@@ -627,18 +634,51 @@ function processGACSResponse(raw) {
     };
 
     return {
-        aqi:      get('aqi', 'AQI', 'Aqi', 'air_quality_index', 'airQualityIndex', 'AirQualityIndex'),
-        pm25:     get('pm25', 'PM25', 'pm2_5', 'PM2_5', 'pm25Value', 'PM25Value', 'Pm25', 'pm2p5', 'PM2P5'),
-        pm10:     get('pm10', 'PM10', 'Pm10', 'pm10Value', 'PM10Value'),
-        o3:       get('o3', 'O3', 'ozone', 'Ozone', 'o3Value', 'O3Value'),
-        no2:      get('no2', 'NO2', 'No2', 'no2Value', 'NO2Value', 'nitrogenDioxide', 'NitrogenDioxide'),
-        so2:      get('so2', 'SO2', 'So2', 'so2Value', 'SO2Value', 'sulfurDioxide', 'SulfurDioxide'),
-        co:       get('co', 'CO', 'Co', 'coValue', 'COValue', 'carbonMonoxide', 'CarbonMonoxide'),
-        temp:     get('temperature', 'Temperature', 'temp', 'Temp', 'TEMP'),
-        humidity: get('humidity', 'Humidity', 'relativeHumidity', 'RelativeHumidity', 'rh', 'RH'),
-        wind:     get('windSpeed', 'WindSpeed', 'wind_speed', 'wind', 'Wind', 'ws', 'WS'),
-        pressure: get('pressure', 'Pressure', 'barometricPressure', 'BarometricPressure', 'bp', 'BP')
+        // Station identity
+        stationName: station.stationName || station.StationName || station.station_name || station.name || station.Name || null,
+
+        // Air quality
+        aqi:       get('aqi', 'AQI', 'Aqi', 'air_quality_index', 'airQualityIndex', 'AirQualityIndex'),
+        pm25:      get('pm25', 'PM25', 'pm2_5', 'PM2_5', 'pm25Value', 'PM25Value', 'Pm25', 'pm2p5', 'PM2P5'),
+        pm10:      get('pm10', 'PM10', 'Pm10', 'pm10Value', 'PM10Value'),
+        o3:        get('o3', 'O3', 'ozone', 'Ozone', 'o3Value', 'O3Value'),
+        no2:       get('no2', 'NO2', 'No2', 'no2Value', 'NO2Value', 'nitrogenDioxide', 'NitrogenDioxide'),
+        so2:       get('so2', 'SO2', 'So2', 'so2Value', 'SO2Value', 'sulfurDioxide', 'SulfurDioxide'),
+        co:        get('co', 'CO', 'Co', 'coValue', 'COValue', 'carbonMonoxide', 'CarbonMonoxide'),
+
+        // Weather
+        temp:      get('temperature', 'Temperature', 'temp', 'Temp', 'TEMP'),
+        humidity:  get('humidity', 'Humidity', 'relativeHumidity', 'RelativeHumidity', 'rh', 'RH'),
+        heatIndex: get('heatIndex', 'HeatIndex', 'heat_index', 'Heat_Index', 'hi', 'HI'),
+        wind:      get('windSpeed', 'WindSpeed', 'wind_speed', 'wind', 'Wind', 'ws', 'WS'),
+        windDir:   get('windDirection', 'WindDirection', 'wind_direction', 'windDir', 'WindDir', 'wd', 'WD'),
+        pressure:  get('pressure', 'Pressure', 'barometricPressure', 'BarometricPressure', 'bp', 'BP'),
+
+        // Environmental (GACS-specific)
+        noise:     get('noise', 'Noise', 'NOISE', 'noiseLevel', 'NoiseLevel', 'noise_level'),
+        vmaxX:     get('vmaxX', 'VmaxX', 'VMAX_X', 'vmax_x', 'Vmax_X', 'vmaxXValue'),
+        vmaxY:     get('vmaxY', 'VmaxY', 'VMAX_Y', 'vmax_y', 'Vmax_Y', 'vmaxYValue'),
+        vmaxZ:     get('vmaxZ', 'VmaxZ', 'VMAX_Z', 'vmax_z', 'Vmax_Z', 'vmaxZValue')
     };
+}
+
+/**
+ * Process the full GACS API response.
+ * Returns the mapped data for the currently selected station.
+ * Stores all stations in state.gacsAllStations for switching.
+ */
+function processGACSResponse(raw) {
+    const records = unwrapGACSResponse(raw);
+    if (!records.length) return null;
+
+    // Map all stations
+    state.gacsAllStations = records.map(mapGACSStation).filter(Boolean);
+
+    if (!state.gacsAllStations.length) return null;
+
+    // Return data for the selected station index
+    const idx = Math.min(state.gacsSelectedIndex, state.gacsAllStations.length - 1);
+    return state.gacsAllStations[idx];
 }
 
 // ===== DATA PROCESSING =====
@@ -686,18 +726,19 @@ function processWAQIData(data) {
 }
 
 function processGACSData(mapped) {
-    // mapped is already in { aqi, pm25, pm10, o3, no2, so2, co, temp, humidity, wind, pressure } format
     // If AQI is missing but we have PM2.5, compute an approximate AQI
     if (mapped.aqi === null && mapped.pm25 !== null) {
         mapped.aqi = computeApproxAQI(mapped.pm25);
     }
 
     state.currentData = mapped;
+    state.dataSource = 'gacs';
 
     // Update all dashboard sections
     updateAQIDisplay(mapped.aqi || 0);
     updatePollutantMetrics(mapped);
     updateWeather(mapped);
+    updateGACSEnvironmental(mapped);
     updateHealthRecommendations(mapped.aqi || 0);
     updateStandardsTable(mapped);
     checkAlerts(mapped);
@@ -710,8 +751,15 @@ function processGACSData(mapped) {
     updateDoughnutChart(mapped);
     updateBreakdownBars(mapped);
 
+    // Update GACS badge
+    if (DOM.gacsDataBadge) {
+        DOM.gacsDataBadge.className = 'gacs-data-badge active';
+        const stationLabel = GACS_STATIONS[state.gacsSelectedIndex] || 'EML-1';
+        DOM.gacsDataBadge.innerHTML = `<i class="fas fa-circle-check"></i> Live — ${stationLabel}`;
+    }
+
     showToast('success', 'GACS Cloud Data',
-        'Receiving real-time data from GACS Cloud monitoring network.');
+        `Receiving real-time data from GACS Cloud — ${GACS_STATIONS[state.gacsSelectedIndex] || 'EML-1'}`);
 }
 
 /**
@@ -822,6 +870,38 @@ function updateWeather(values) {
     DOM.humidityValue.textContent = values.humidity !== null ? `${values.humidity}%` : '--%';
     DOM.windValue.textContent = values.wind !== null ? `${values.wind} m/s` : '-- m/s';
     DOM.pressureValue.textContent = values.pressure !== null ? `${values.pressure} hPa` : '-- hPa';
+
+    // GACS-specific weather fields
+    if (DOM.heatIndexValue) {
+        DOM.heatIndexValue.textContent = values.heatIndex !== null && values.heatIndex !== undefined ? `${values.heatIndex}°C` : '--°C';
+    }
+    if (DOM.windDirValue) {
+        if (values.windDir !== null && values.windDir !== undefined) {
+            DOM.windDirValue.textContent = `${values.windDir}° ${getWindDirLabel(values.windDir)}`;
+        } else {
+            DOM.windDirValue.textContent = '--°';
+        }
+    }
+}
+
+function getWindDirLabel(deg) {
+    const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    return dirs[Math.round(deg / 22.5) % 16] || '';
+}
+
+function updateGACSEnvironmental(values) {
+    if (DOM.noiseValue) {
+        DOM.noiseValue.textContent = values.noise !== null && values.noise !== undefined ? values.noise : '--';
+    }
+    if (DOM.vmaxXValue) {
+        DOM.vmaxXValue.textContent = values.vmaxX !== null && values.vmaxX !== undefined ? values.vmaxX.toFixed(2) : '--';
+    }
+    if (DOM.vmaxYValue) {
+        DOM.vmaxYValue.textContent = values.vmaxY !== null && values.vmaxY !== undefined ? values.vmaxY.toFixed(2) : '--';
+    }
+    if (DOM.vmaxZValue) {
+        DOM.vmaxZValue.textContent = values.vmaxZ !== null && values.vmaxZ !== undefined ? values.vmaxZ.toFixed(2) : '--';
+    }
 }
 
 function updateHealthRecommendations(aqi) {
@@ -1700,4 +1780,4 @@ function startAutoRefresh() {
 }
 
 // ===== EXPOSE FOR DEBUGGING =====
-window.AQDashboard = { state, CONFIG, fetchAllData, fetchGACSData, processGACSResponse };
+window.AQDashboard = { state, CONFIG, GACS_STATIONS, fetchAllData, fetchGACSData, processGACSResponse, mapGACSStation };
