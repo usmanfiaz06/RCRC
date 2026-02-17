@@ -6,8 +6,10 @@
     <title>Wadi Hanifa Air Quality Dashboard - Riyadh</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
     <!-- Notification Toast Container -->
@@ -89,8 +91,22 @@
 
     <!-- Main Dashboard -->
     <main class="dashboard">
-        <!-- Top Row: AQI Gauge + Key Metrics -->
-        <div class="dashboard-row top-row">
+        <!-- Map + AQI Hero Row -->
+        <div class="dashboard-row map-hero-row">
+            <!-- Station Map -->
+            <div class="card map-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-map-location-dot"></i> Monitoring Stations Map</h2>
+                    <div class="map-legend">
+                        <span class="map-legend-item"><span class="map-dot map-dot-active"></span> Active</span>
+                        <span class="map-legend-item"><span class="map-dot map-dot-primary"></span> Primary</span>
+                    </div>
+                </div>
+                <div class="card-body map-body">
+                    <div id="station-map"></div>
+                </div>
+            </div>
+
             <!-- AQI Gauge Card -->
             <div class="card aqi-card">
                 <div class="card-header">
@@ -117,9 +133,11 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Key Pollutant Cards -->
-            <div class="metrics-grid">
+        <!-- Key Pollutant Metrics -->
+        <div class="dashboard-row">
+            <div class="metrics-grid metrics-grid-full">
                 <div class="card metric-card pm25-card" id="pm25-metric">
                     <div class="metric-icon"><i class="fas fa-smog"></i></div>
                     <div class="metric-content">

@@ -90,12 +90,17 @@ a:hover {
     align-items: center;
     justify-content: space-between;
     padding: 1rem 2rem;
-    background: var(--bg-secondary);
+    background: rgba(26, 39, 50, 0.85);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+[data-theme="light"] .header {
+    background: rgba(255, 255, 255, 0.85);
 }
 
 .header-left {
@@ -288,6 +293,109 @@ a:hover {
     margin-bottom: 1.5rem;
 }
 
+/* === MAP + AQI HERO === */
+.map-hero-row {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1.5rem;
+}
+
+.map-card .card-body.map-body {
+    padding: 0;
+}
+
+#station-map {
+    width: 100%;
+    height: 380px;
+    border-radius: 0 0 var(--radius) var(--radius);
+    z-index: 1;
+}
+
+.map-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.map-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.map-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.map-dot-active {
+    background: var(--accent-green);
+    box-shadow: 0 0 6px rgba(0, 200, 83, 0.5);
+}
+
+.map-dot-primary {
+    background: var(--accent-blue);
+    box-shadow: 0 0 6px rgba(29, 161, 242, 0.5);
+}
+
+/* Custom Leaflet popup */
+.leaflet-popup-content-wrapper {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+.leaflet-popup-tip {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.leaflet-popup-content {
+    margin: 0.75rem 1rem !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important;
+    font-size: 0.82rem !important;
+    line-height: 1.5 !important;
+}
+
+.station-popup-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--accent-blue);
+    margin-bottom: 0.25rem;
+}
+
+.station-popup-detail {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.station-popup-aqi {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    margin-top: 0.35rem;
+}
+
+/* Dark Leaflet tiles */
+.leaflet-tile-pane {
+    filter: saturate(0.85);
+}
+
+[data-theme="light"] .leaflet-tile-pane {
+    filter: none;
+}
+
+.metrics-grid-full {
+    grid-template-columns: repeat(6, 1fr);
+}
+
 .top-row {
     display: grid;
     grid-template-columns: 380px 1fr;
@@ -313,11 +421,34 @@ a:hover {
     border-radius: var(--radius);
     overflow: hidden;
     transition: var(--transition);
+    animation: cardFadeIn 0.5s ease both;
 }
+
+@keyframes cardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dashboard-row:nth-child(2) .card { animation-delay: 0.05s; }
+.dashboard-row:nth-child(3) .card { animation-delay: 0.1s; }
+.dashboard-row:nth-child(4) .card { animation-delay: 0.15s; }
+.dashboard-row:nth-child(5) .card { animation-delay: 0.2s; }
+.dashboard-row:nth-child(6) .card { animation-delay: 0.25s; }
 
 .card:hover {
     border-color: rgba(29, 161, 242, 0.3);
     box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+
+.card:active {
+    transform: translateY(0);
 }
 
 .card-header {
@@ -496,6 +627,7 @@ a:hover {
     font-size: 1.6rem;
     font-weight: 800;
     line-height: 1.2;
+    transition: color 0.5s ease;
 }
 
 .metric-unit {
@@ -1144,6 +1276,14 @@ input:checked + .slider:before {
         grid-template-columns: 1fr;
     }
 
+    .map-hero-row {
+        grid-template-columns: 1fr;
+    }
+
+    .metrics-grid-full {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
     .bottom-row {
         grid-template-columns: 1fr 1fr;
     }
@@ -1185,13 +1325,19 @@ input:checked + .slider:before {
         grid-template-columns: 1fr;
     }
 
-    .metrics-grid {
+    .metrics-grid,
+    .metrics-grid-full {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    #station-map {
+        height: 280px;
     }
 }
 
 @media (max-width: 600px) {
-    .metrics-grid {
+    .metrics-grid,
+    .metrics-grid-full {
         grid-template-columns: 1fr;
     }
 
@@ -1214,6 +1360,10 @@ input:checked + .slider:before {
     }
 
     .chart-container {
+        height: 220px;
+    }
+
+    #station-map {
         height: 220px;
     }
 }

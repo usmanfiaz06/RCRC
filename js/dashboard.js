@@ -161,6 +161,7 @@ const AQI_CATEGORIES = [
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initCharts();
+    initMap();
     initEventListeners();
     loadSavedSettings();
     fetchAllData();
@@ -185,6 +186,7 @@ function toggleTheme() {
     }
     localStorage.setItem('aq_theme', next);
     updateChartTheme();
+    updateMapTheme();
 }
 
 function getThemeColors() {
@@ -263,6 +265,142 @@ function updateChartTheme() {
         state.charts.allPollutants.data.datasets[1].borderColor = colors.whoBorder;
         state.charts.allPollutants.update('none');
     }
+}
+
+// ===== MAP =====
+function initMap() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+    const map = L.map('station-map', {
+        center: [24.774, 46.638],
+        zoom: 10,
+        zoomControl: true,
+        attributionControl: false
+    });
+
+    // Use CartoDB tiles for dark/light theme compatibility
+    const tileUrl = isLight
+        ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+    state.mapTileLayer = L.tileLayer(tileUrl, {
+        maxZoom: 18,
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+    }).addTo(map);
+
+    state.map = map;
+
+    // Riyadh Air Quality Monitoring Stations (from RCRC dataset)
+    const stations = [
+        {
+            name: 'Wadi Hanifa (Station 7)',
+            lat: 24.774, lon: 46.638,
+            type: 'Background',
+            altitude: '672 MASL',
+            desc: 'Government Compound ~23km NW of Riyadh, adjacent to Alba Dam',
+            primary: true
+        },
+        {
+            name: 'Al Murabba (Station 1)',
+            lat: 24.6508, lon: 46.7103,
+            type: 'Urban Traffic',
+            altitude: '612 MASL',
+            desc: 'Near King Abdulaziz Historical Center'
+        },
+        {
+            name: 'Al Malaz (Station 2)',
+            lat: 24.6588, lon: 46.7299,
+            type: 'Urban Background',
+            altitude: '615 MASL',
+            desc: 'Al Malaz residential area'
+        },
+        {
+            name: 'Al Naseem (Station 3)',
+            lat: 24.6936, lon: 46.7622,
+            type: 'Urban Traffic',
+            altitude: '595 MASL',
+            desc: 'Eastern Riyadh near Ring Road'
+        },
+        {
+            name: 'Industrial Area (Station 4)',
+            lat: 24.5782, lon: 46.8071,
+            type: 'Industrial',
+            altitude: '590 MASL',
+            desc: '2nd Industrial City south of Riyadh'
+        },
+        {
+            name: 'Al Qirawan (Station 5)',
+            lat: 24.8292, lon: 46.6281,
+            type: 'Suburban',
+            altitude: '670 MASL',
+            desc: 'Northern Riyadh suburban area'
+        },
+        {
+            name: 'Al Thumama (Station 6)',
+            lat: 24.7352, lon: 46.8199,
+            type: 'Suburban',
+            altitude: '600 MASL',
+            desc: 'Near Al Thumama Park, eastern Riyadh'
+        },
+        {
+            name: 'King Khalid Airport (Station 8)',
+            lat: 24.9577, lon: 46.6989,
+            type: 'Airport',
+            altitude: '620 MASL',
+            desc: 'King Khalid International Airport area'
+        }
+    ];
+
+    stations.forEach(station => {
+        const color = station.primary ? '#1da1f2' : '#00c853';
+        const radius = station.primary ? 10 : 7;
+        const pulseClass = station.primary ? 'primary-marker' : '';
+
+        const marker = L.circleMarker([station.lat, station.lon], {
+            radius: radius,
+            fillColor: color,
+            color: '#fff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.9
+        }).addTo(map);
+
+        const popupContent = `
+            <div class="station-popup-name">${station.name}</div>
+            <div class="station-popup-detail">
+                <strong>Type:</strong> ${station.type}<br>
+                <strong>Altitude:</strong> ${station.altitude}<br>
+                <strong>Location:</strong> ${station.desc}
+            </div>
+            ${station.primary ? '<div class="station-popup-aqi" style="background:rgba(29,161,242,0.15);color:#1da1f2;">Primary Monitoring Station</div>' : ''}
+        `;
+
+        marker.bindPopup(popupContent);
+
+        if (station.primary) {
+            // Add a pulsing ring for primary station
+            L.circleMarker([station.lat, station.lon], {
+                radius: 18,
+                fillColor: color,
+                color: color,
+                weight: 1,
+                opacity: 0.3,
+                fillOpacity: 0.1
+            }).addTo(map);
+        }
+    });
+
+    // Store ref for theme updates
+    state.mapStations = stations;
+}
+
+function updateMapTheme() {
+    if (!state.map || !state.mapTileLayer) return;
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const tileUrl = isLight
+        ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    state.mapTileLayer.setUrl(tileUrl);
 }
 
 function initEventListeners() {
