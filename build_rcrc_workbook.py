@@ -50,27 +50,139 @@ OM_AIR_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 OM_WX_URL = "https://archive-api.open-meteo.com/v1/archive"
 
 AIR_HOURLY = [
-    "pm10",
-    "pm2_5",
-    "carbon_monoxide",
-    "nitrogen_dioxide",
-    "sulphur_dioxide",
-    "ozone",
+    # core pollutants
+    "pm10", "pm2_5",
+    "carbon_monoxide", "carbon_dioxide",
+    "nitrogen_dioxide", "sulphur_dioxide", "ozone",
+    # atmospheric composition
+    "dust", "aerosol_optical_depth",
+    "uv_index", "uv_index_clear_sky",
+    # AQI: overall + per-pollutant sub-indices
     "us_aqi",
+    "us_aqi_pm2_5", "us_aqi_pm10",
+    "us_aqi_nitrogen_dioxide", "us_aqi_ozone",
+    "us_aqi_sulphur_dioxide", "us_aqi_carbon_monoxide",
 ]
 WX_HOURLY = [
-    "temperature_2m",
-    "relative_humidity_2m",
-    "wind_speed_10m",
-    "wind_direction_10m",
-    "surface_pressure",
+    # temperature + humidity
+    "temperature_2m", "apparent_temperature",
+    "relative_humidity_2m", "dew_point_2m",
+    # pressure
+    "surface_pressure", "pressure_msl",
+    # precipitation + cloud
+    "precipitation", "rain", "snowfall",
+    "cloud_cover", "cloud_cover_low", "cloud_cover_mid", "cloud_cover_high",
+    "weather_code",
+    # wind
+    "wind_speed_10m", "wind_speed_100m",
+    "wind_direction_10m", "wind_direction_100m",
+    "wind_gusts_10m",
+    # radiation + sunshine
+    "shortwave_radiation", "direct_radiation",
+    "diffuse_radiation", "direct_normal_irradiance",
+    "sunshine_duration", "is_day",
+    # soil + agro
+    "soil_temperature_0_to_7cm", "soil_moisture_0_to_7cm",
+    "vapour_pressure_deficit", "et0_fao_evapotranspiration",
 ]
 
 # Brand palette (Royal Commission green tones + AQI bands)
 BRAND_PRIMARY = "0E5C3A"   # deep green header bar
 BRAND_ACCENT = "1F9D55"    # accent green
 BRAND_LIGHT = "E7F4ED"     # zebra row fill
+BRAND_GOLD = "C9A227"      # accent gold
 HEADER_FONT_COLOR = "FFFFFF"
+
+# Category-band colors for grouped headers
+CAT_COLORS = {
+    "pollutants": "1F6FB2",  # blue
+    "atmos": "B45F06",       # brown
+    "aqi": "7E0023",         # maroon (matches hazardous AQI)
+    "temp": "B83232",        # warm red
+    "press": "5D3A8E",       # purple
+    "precip": "0E7C7B",      # teal
+    "cloud": "5B7C99",       # slate
+    "wind": "2F8F4F",        # green
+    "rad": "C9A227",         # gold
+    "soil": "6B4226",        # earth
+    "agro": "4C7A2F",        # leaf
+}
+
+# Column groups (label, category, list of (key, header, unit, fmt))
+COLUMN_GROUPS: list[tuple[str, str, list[tuple[str, str, str, str]]]] = [
+    ("Time", "pollutants", [
+        ("time", "Timestamp (Riyadh)", "", "yyyy-mm-dd hh:mm"),
+    ]),
+    ("Core Pollutants", "pollutants", [
+        ("pm2_5", "PM2.5", "µg/m³", "0.0"),
+        ("pm10", "PM10", "µg/m³", "0.0"),
+        ("carbon_monoxide", "CO", "µg/m³", "0.0"),
+        ("carbon_dioxide", "CO₂", "ppm", "0.0"),
+        ("nitrogen_dioxide", "NO₂", "µg/m³", "0.0"),
+        ("sulphur_dioxide", "SO₂", "µg/m³", "0.0"),
+        ("ozone", "O₃", "µg/m³", "0.0"),
+    ]),
+    ("Atmospheric", "atmos", [
+        ("dust", "Dust", "µg/m³", "0.0"),
+        ("aerosol_optical_depth", "AOD", "—", "0.000"),
+        ("uv_index", "UV Index", "—", "0.0"),
+        ("uv_index_clear_sky", "UV (clear)", "—", "0.0"),
+    ]),
+    ("AQI (US)", "aqi", [
+        ("us_aqi", "US AQI", "—", "0"),
+        ("us_aqi_pm2_5", "AQI PM2.5", "—", "0"),
+        ("us_aqi_pm10", "AQI PM10", "—", "0"),
+        ("us_aqi_nitrogen_dioxide", "AQI NO₂", "—", "0"),
+        ("us_aqi_ozone", "AQI O₃", "—", "0"),
+        ("us_aqi_sulphur_dioxide", "AQI SO₂", "—", "0"),
+        ("us_aqi_carbon_monoxide", "AQI CO", "—", "0"),
+    ]),
+    ("Temperature & Humidity", "temp", [
+        ("temperature_2m", "Temp", "°C", "0.0"),
+        ("apparent_temperature", "Feels Like", "°C", "0.0"),
+        ("relative_humidity_2m", "Humidity", "%", "0"),
+        ("dew_point_2m", "Dew Point", "°C", "0.0"),
+    ]),
+    ("Pressure", "press", [
+        ("surface_pressure", "Surface P", "hPa", "0.0"),
+        ("pressure_msl", "MSL P", "hPa", "0.0"),
+    ]),
+    ("Precipitation", "precip", [
+        ("precipitation", "Precip", "mm", "0.00"),
+        ("rain", "Rain", "mm", "0.00"),
+        ("snowfall", "Snow", "cm", "0.00"),
+    ]),
+    ("Cloud", "cloud", [
+        ("cloud_cover", "Cloud", "%", "0"),
+        ("cloud_cover_low", "Low", "%", "0"),
+        ("cloud_cover_mid", "Mid", "%", "0"),
+        ("cloud_cover_high", "High", "%", "0"),
+        ("weather_code", "WMO Code", "—", "0"),
+    ]),
+    ("Wind", "wind", [
+        ("wind_speed_10m", "Wind 10m", "km/h", "0.0"),
+        ("wind_speed_100m", "Wind 100m", "km/h", "0.0"),
+        ("wind_direction_10m", "Dir 10m", "°", "0"),
+        ("wind_direction_100m", "Dir 100m", "°", "0"),
+        ("wind_gusts_10m", "Gusts", "km/h", "0.0"),
+    ]),
+    ("Radiation & Sunshine", "rad", [
+        ("shortwave_radiation", "Shortwave", "W/m²", "0"),
+        ("direct_radiation", "Direct", "W/m²", "0"),
+        ("diffuse_radiation", "Diffuse", "W/m²", "0"),
+        ("direct_normal_irradiance", "DNI", "W/m²", "0"),
+        ("sunshine_duration", "Sunshine", "s", "0"),
+        ("is_day", "Day?", "0/1", "0"),
+    ]),
+    ("Soil", "soil", [
+        ("soil_temperature_0_to_7cm", "Soil T", "°C", "0.0"),
+        ("soil_moisture_0_to_7cm", "Soil M", "m³/m³", "0.000"),
+    ]),
+    ("Agro", "agro", [
+        ("vapour_pressure_deficit", "VPD", "kPa", "0.00"),
+        ("et0_fao_evapotranspiration", "ET₀", "mm", "0.00"),
+    ]),
+]
 
 AQI_BANDS = [
     (0, 50, "00E400", "000000", "Good"),
@@ -160,53 +272,54 @@ def chunk_dates(start: date, end: date, months: int = 6) -> list[tuple[date, dat
     return chunks
 
 
+def _chunk_vars(vars_: list[str], size: int = 15) -> list[list[str]]:
+    return [vars_[i:i + size] for i in range(0, len(vars_), size)]
+
+
 def fetch_hourly(url: str, lat: float, lon: float, vars_: list[str]) -> dict[str, list]:
     merged: dict[str, list] = {"time": []}
     for v in vars_:
         merged[v] = []
     for cs, ce in chunk_dates(START_DATE, END_DATE):
-        params = {
-            "latitude": lat,
-            "longitude": lon,
-            "hourly": ",".join(vars_),
-            "start_date": cs.isoformat(),
-            "end_date": ce.isoformat(),
-            "timezone": "Asia/Riyadh",
-        }
-        data = http_get(url, params)
-        hourly = data.get("hourly") or {}
-        if not hourly.get("time"):
-            continue
-        for k in merged:
-            merged[k].extend(hourly.get(k, []))
+        # Split variables into smaller groups so each URL stays under server limits
+        per_chunk_time: list[str] | None = None
+        for vgroup in _chunk_vars(vars_):
+            params = {
+                "latitude": lat,
+                "longitude": lon,
+                "hourly": ",".join(vgroup),
+                "start_date": cs.isoformat(),
+                "end_date": ce.isoformat(),
+                "timezone": "Asia/Riyadh",
+            }
+            data = http_get(url, params)
+            hourly = data.get("hourly") or {}
+            if not hourly.get("time"):
+                continue
+            if per_chunk_time is None:
+                per_chunk_time = hourly["time"]
+                merged["time"].extend(per_chunk_time)
+            for k in vgroup:
+                merged[k].extend(hourly.get(k, [None] * len(per_chunk_time)))
     return merged
 
 
 def fetch_station_data(lat: float, lon: float) -> list[dict]:
-    """Return one row per hour with pollutants + weather aligned by timestamp."""
+    """Return one row per hour with every CAMS + ERA5 variable aligned by timestamp."""
     air = fetch_hourly(OM_AIR_URL, lat, lon, AIR_HOURLY)
     wx = fetch_hourly(OM_WX_URL, lat, lon, WX_HOURLY)
     wx_idx = {t: i for i, t in enumerate(wx.get("time", []))}
     rows: list[dict] = []
     for i, t in enumerate(air.get("time", [])):
         wi = wx_idx.get(t)
-        rows.append(
-            {
-                "time": t,
-                "pm2_5": air["pm2_5"][i],
-                "pm10": air["pm10"][i],
-                "o3": air["ozone"][i],
-                "no2": air["nitrogen_dioxide"][i],
-                "so2": air["sulphur_dioxide"][i],
-                "co": air["carbon_monoxide"][i],
-                "us_aqi": air["us_aqi"][i],
-                "temperature": wx["temperature_2m"][wi] if wi is not None else None,
-                "humidity": wx["relative_humidity_2m"][wi] if wi is not None else None,
-                "wind_speed": wx["wind_speed_10m"][wi] if wi is not None else None,
-                "wind_dir": wx["wind_direction_10m"][wi] if wi is not None else None,
-                "pressure": wx["surface_pressure"][wi] if wi is not None else None,
-            }
-        )
+        row: dict[str, Any] = {"time": t}
+        for v in AIR_HOURLY:
+            arr = air.get(v) or []
+            row[v] = arr[i] if i < len(arr) else None
+        for v in WX_HOURLY:
+            arr = wx.get(v) or []
+            row[v] = arr[wi] if wi is not None and wi < len(arr) else None
+        rows.append(row)
     return rows
 
 
@@ -251,93 +364,183 @@ def add_aqi_conditional(ws, col_letter: str, first: int, last: int) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _kpi_tile(ws, top_row: int, left_col: int, label: str, value: str,
+              fill: str, accent: str = HEADER_FONT_COLOR) -> None:
+    label_cell = ws.cell(row=top_row, column=left_col, value=label)
+    value_cell = ws.cell(row=top_row + 1, column=left_col, value=value)
+    ws.merge_cells(start_row=top_row, start_column=left_col,
+                   end_row=top_row, end_column=left_col + 2)
+    ws.merge_cells(start_row=top_row + 1, start_column=left_col,
+                   end_row=top_row + 2, end_column=left_col + 2)
+    label_cell.fill = PatternFill("solid", fgColor=fill)
+    label_cell.font = Font(bold=True, color=accent, size=10)
+    label_cell.alignment = Alignment(horizontal="center", vertical="center")
+    value_cell.fill = PatternFill("solid", fgColor="FFFFFF")
+    value_cell.font = Font(bold=True, size=20, color=fill)
+    value_cell.alignment = Alignment(horizontal="center", vertical="center")
+    value_cell.border = Border(
+        left=Side(style="medium", color=fill),
+        right=Side(style="medium", color=fill),
+        bottom=Side(style="medium", color=fill),
+    )
+    ws.row_dimensions[top_row].height = 18
+    ws.row_dimensions[top_row + 1].height = 22
+    ws.row_dimensions[top_row + 2].height = 22
+
+
 def build_cover(wb: Workbook, stations: list[dict], total_records: int) -> None:
     ws = wb.create_sheet("Cover", 0)
     ws.sheet_view.showGridLines = False
-    ws["A1"] = "Royal Commission for Riyadh City"
-    ws["A1"].font = Font(bold=True, size=22, color=BRAND_PRIMARY)
-    ws["A2"] = "Air Quality Monitoring Stations — 18-month dataset"
-    ws["A2"].font = Font(bold=True, size=14, color=BRAND_ACCENT)
-    ws.merge_cells("A1:F1")
-    ws.merge_cells("A2:F2")
 
-    rows = [
-        ("Date range", f"{START_DATE.isoformat()} → {END_DATE.isoformat()}"),
-        ("Generation timestamp", datetime.now().isoformat(timespec="seconds")),
-        ("Station count", len(stations)),
-        ("Total hourly records", total_records),
+    # Title bar
+    ws.merge_cells("A1:L3")
+    title = ws["A1"]
+    title.value = "RCRC  ·  Air Quality Monitoring Stations"
+    title.font = Font(bold=True, size=26, color="FFFFFF")
+    title.alignment = Alignment(horizontal="center", vertical="center")
+    title.fill = PatternFill("solid", fgColor=BRAND_PRIMARY)
+    ws.row_dimensions[1].height = 30
+    ws.row_dimensions[2].height = 30
+    ws.row_dimensions[3].height = 30
+
+    ws.merge_cells("A4:L4")
+    sub = ws["A4"]
+    sub.value = "Royal Commission for Riyadh City · 18-month hourly dataset"
+    sub.font = Font(italic=True, size=12, color="FFFFFF")
+    sub.alignment = Alignment(horizontal="center", vertical="center")
+    sub.fill = PatternFill("solid", fgColor=BRAND_ACCENT)
+    ws.row_dimensions[4].height = 22
+
+    # KPI tiles
+    days = (END_DATE - START_DATE).days + 1
+    total_air_vars = sum(len(g[2]) for g in COLUMN_GROUPS if g[1] in ("pollutants", "atmos", "aqi")) - 1
+    total_wx_vars = sum(len(g[2]) for g in COLUMN_GROUPS if g[1] not in ("pollutants", "atmos", "aqi"))
+    kpis = [
+        ("STATIONS", str(len(stations)), BRAND_PRIMARY),
+        ("HOURLY ROWS", f"{total_records:,}", BRAND_ACCENT),
+        ("DAYS COVERED", str(days), CAT_COLORS["temp"]),
+        ("PARAMETERS / ROW", str(total_air_vars + total_wx_vars), BRAND_GOLD),
+    ]
+    for i, (lbl, val, color) in enumerate(kpis):
+        _kpi_tile(ws, top_row=6, left_col=1 + i * 3, label=lbl, value=val, fill=color)
+
+    # Metadata table
+    meta = [
+        ("Date range", f"{START_DATE.isoformat()}  →  {END_DATE.isoformat()}"),
+        ("Generated", datetime.now().isoformat(timespec="seconds")),
+        ("Timezone", "Asia/Riyadh (GMT+3)"),
+        ("Air-quality parameters", f"{total_air_vars} (CAMS reanalysis)"),
+        ("Weather parameters", f"{total_wx_vars} (ERA5 reanalysis)"),
         ("Station registry", "RCRC Open Data Portal — air-quality-stations-in-riyadh-2025"),
         ("Registry URL", "https://opendata.rcrc.gov.sa/explore/dataset/air-quality-stations-in-riyadh-2025/"),
-        ("Readings source", "Copernicus Atmosphere Monitoring Service (CAMS) reanalysis via Open-Meteo"),
-        ("Readings URL", "https://open-meteo.com/en/docs/air-quality-api"),
+        ("Air-quality source", "Copernicus Atmosphere Monitoring Service (CAMS) via Open-Meteo"),
+        ("Air-quality URL", "https://open-meteo.com/en/docs/air-quality-api"),
         ("Weather source", "ECMWF ERA5 reanalysis via Open-Meteo"),
         ("Weather URL", "https://open-meteo.com/en/docs/historical-weather-api"),
-        ("Timezone", "Asia/Riyadh (GMT+3)"),
     ]
-    for i, (k, v) in enumerate(rows, start=4):
-        ws.cell(row=i, column=1, value=k).font = Font(bold=True)
-        ws.cell(row=i, column=2, value=v)
-        ws.merge_cells(start_row=i, start_column=2, end_row=i, end_column=6)
+    start_row = 11
+    ws.cell(row=start_row, column=1, value="DATASET METADATA").font = Font(
+        bold=True, size=11, color=BRAND_PRIMARY)
+    ws.merge_cells(start_row=start_row, start_column=1, end_row=start_row, end_column=12)
+    for i, (k, v) in enumerate(meta, start=start_row + 1):
+        key_cell = ws.cell(row=i, column=1, value=k)
+        key_cell.font = Font(bold=True, color="333333")
+        key_cell.fill = PatternFill("solid", fgColor=BRAND_LIGHT)
+        ws.merge_cells(start_row=i, start_column=1, end_row=i, end_column=3)
+        val_cell = ws.cell(row=i, column=4, value=v)
+        val_cell.font = Font(color="222222")
+        ws.merge_cells(start_row=i, start_column=4, end_row=i, end_column=12)
+        for c in range(1, 13):
+            ws.cell(row=i, column=c).border = BORDER
 
-    note_row = 4 + len(rows) + 1
-    ws.cell(
-        row=note_row, column=1,
-        value="Important note on data provenance"
-    ).font = Font(bold=True, size=12, color="A04000")
-    ws.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=6)
+    note_row = start_row + len(meta) + 2
+    note_header = ws.cell(row=note_row, column=1, value="⚠  DATA PROVENANCE")
+    note_header.font = Font(bold=True, size=12, color="FFFFFF")
+    note_header.fill = PatternFill("solid", fgColor="A04000")
+    note_header.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=12)
+    ws.row_dimensions[note_row].height = 22
 
     note_body = (
-        "RCRC publishes the station registry only — its open data portal does not expose "
+        "RCRC publishes the station registry only — its open-data portal does NOT expose "
         "historical pollutant readings. The hourly pollutant + weather values in this workbook "
         "are sampled from Copernicus CAMS / ECMWF ERA5 global reanalysis at each RCRC station's "
-        "coordinates. CAMS data is model + satellite derived at ~10 km horizontal resolution, so "
-        "stations close to each other in Riyadh will have similar values. Use these readings as a "
-        "regional indicator, not as the stations' own instrument observations."
+        "coordinates. CAMS air-quality data is model + satellite derived at ~10 km horizontal "
+        "resolution, so stations within a few km of each other in Riyadh will show similar values. "
+        "Use these readings as a regional indicator, not as the stations' own instrument observations."
     )
-    ws.cell(row=note_row + 1, column=1, value=note_body).alignment = Alignment(wrap_text=True, vertical="top")
-    ws.merge_cells(start_row=note_row + 1, start_column=1, end_row=note_row + 5, end_column=6)
+    body = ws.cell(row=note_row + 1, column=1, value=note_body)
+    body.alignment = Alignment(wrap_text=True, vertical="top")
+    body.font = Font(size=11, color="222222")
+    body.fill = PatternFill("solid", fgColor="FFF6E5")
+    ws.merge_cells(start_row=note_row + 1, start_column=1, end_row=note_row + 5, end_column=12)
+    for r in range(note_row + 1, note_row + 6):
+        for c in range(1, 13):
+            ws.cell(row=r, column=c).border = BORDER
 
-    autosize(ws, {1: 26, 2: 22, 3: 22, 4: 22, 5: 22, 6: 22})
+    autosize(ws, {c: 13 for c in range(1, 13)})
+
+
+CLASS_COLORS = {
+    "Traffic": ("B83232", "FFFFFF"),
+    "Suburban": ("2F8F4F", "FFFFFF"),
+    "Background stations": ("1F6FB2", "FFFFFF"),
+    "Mobile": ("C9A227", "222222"),
+}
 
 
 def build_stations(wb: Workbook, stations: list[dict]) -> None:
     ws = wb.create_sheet("Stations")
+    ws.sheet_view.showGridLines = False
+
+    ws.merge_cells("A1:J2")
+    title = ws["A1"]
+    title.value = "RCRC Air Quality Monitoring Stations"
+    title.font = Font(bold=True, size=18, color="FFFFFF")
+    title.alignment = Alignment(horizontal="center", vertical="center")
+    title.fill = PatternFill("solid", fgColor=BRAND_PRIMARY)
+    ws.row_dimensions[1].height = 22
+    ws.row_dimensions[2].height = 22
+
     headers = [
-        "Index", "Station (EN)", "Station (AR)", "Classification (EN)",
-        "Classification (AR)", "Altitude (m)", "Latitude", "Longitude",
+        "#", "Station (EN)", "Station (AR)", "Classification",
+        "تصنيف", "Altitude (m)", "Latitude", "Longitude",
         "Location (EN)", "Location (AR)",
     ]
-    ws.append(headers)
-    style_header_row(ws, 1, len(headers))
-    for s in stations:
-        geo = s.get("geo_point_2d") or {}
-        ws.append([
-            s.get("index"),
-            s.get("stationairq"),
-            s.get("stationairqar"),
-            s.get("stationclass"),
-            s.get("stationclassar"),
-            s.get("stationaltitude"),
-            geo.get("lat"),
-            geo.get("lon"),
-            s.get("stationairqlocation"),
-            s.get("stationairqlocationar"),
-        ])
-    ws.freeze_panes = "A2"
-    last = ws.max_row
-    for r in range(2, last + 1):
-        if r % 2 == 0:
-            for c in range(1, len(headers) + 1):
-                ws.cell(row=r, column=c).fill = PatternFill("solid", fgColor=BRAND_LIGHT)
-        ws.cell(row=r, column=7).number_format = "0.0000"
-        ws.cell(row=r, column=8).number_format = "0.0000"
-    autosize(ws, {1: 7, 2: 28, 3: 28, 4: 18, 5: 22, 6: 12, 7: 11, 8: 11, 9: 60, 10: 60})
+    for c, h in enumerate(headers, start=1):
+        ws.cell(row=3, column=c, value=h)
+    style_header_row(ws, 3, len(headers))
 
-    table = Table(displayName="Stations", ref=f"A1:{get_column_letter(len(headers))}{last}")
-    table.tableStyleInfo = TableStyleInfo(
-        name="TableStyleMedium2", showRowStripes=False, showColumnStripes=False
-    )
-    ws.add_table(table)
+    for i, s in enumerate(stations, start=4):
+        geo = s.get("geo_point_2d") or {}
+        ws.cell(row=i, column=1, value=s.get("index"))
+        ws.cell(row=i, column=2, value=s.get("stationairq"))
+        ws.cell(row=i, column=3, value=s.get("stationairqar"))
+        cls = s.get("stationclass") or ""
+        cls_cell = ws.cell(row=i, column=4, value=cls)
+        fg, fc = CLASS_COLORS.get(cls, ("888888", "FFFFFF"))
+        cls_cell.fill = PatternFill("solid", fgColor=fg)
+        cls_cell.font = Font(bold=True, color=fc)
+        cls_cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.cell(row=i, column=5, value=s.get("stationclassar")).alignment = Alignment(
+            horizontal="right")
+        ws.cell(row=i, column=6, value=s.get("stationaltitude")).alignment = Alignment(
+            horizontal="center")
+        ws.cell(row=i, column=7, value=geo.get("lat")).number_format = "0.0000"
+        ws.cell(row=i, column=8, value=geo.get("lon")).number_format = "0.0000"
+        ws.cell(row=i, column=9, value=s.get("stationairqlocation"))
+        ws.cell(row=i, column=10, value=s.get("stationairqlocationar")).alignment = Alignment(
+            horizontal="right")
+        if i % 2 == 1:
+            for c in range(1, len(headers) + 1):
+                cell = ws.cell(row=i, column=c)
+                if cell.fill.fgColor.rgb in (None, "00000000", "FFFFFFFF"):
+                    cell.fill = PatternFill("solid", fgColor=BRAND_LIGHT)
+        for c in range(1, len(headers) + 1):
+            ws.cell(row=i, column=c).border = BORDER
+
+    ws.freeze_panes = "A4"
+    autosize(ws, {1: 5, 2: 28, 3: 32, 4: 22, 5: 22, 6: 12, 7: 11, 8: 11, 9: 65, 10: 65})
 
 
 def safe_sheet_name(name: str) -> str:
@@ -346,68 +549,162 @@ def safe_sheet_name(name: str) -> str:
     return out[:31]
 
 
+def _flat_columns() -> list[tuple[str, str, str, str, str]]:
+    """Flatten COLUMN_GROUPS into (key, header, unit, fmt, category) tuples."""
+    out = []
+    for _grp_label, cat, items in COLUMN_GROUPS:
+        for key, header, unit, fmt in items:
+            out.append((key, header, unit, fmt, cat))
+    return out
+
+
 def build_station_sheet(wb: Workbook, station: dict, rows: list[dict]) -> None:
     name = safe_sheet_name(station["stationairq"])
     ws = wb.create_sheet(name)
-    headers = [
-        "Timestamp (Riyadh)", "PM2.5 (µg/m³)", "PM10 (µg/m³)", "O₃ (µg/m³)",
-        "NO₂ (µg/m³)", "SO₂ (µg/m³)", "CO (µg/m³)", "US AQI",
-        "Temp (°C)", "Humidity (%)", "Wind (km/h)", "Wind dir (°)", "Pressure (hPa)",
+    cols = _flat_columns()
+    ncols = len(cols)
+    geo = station.get("geo_point_2d") or {}
+
+    # Row 1: title block
+    title_text = f"  {station['stationairq']}"
+    sub_text = f"{station.get('stationclass') or '—'}  ·  {geo.get('lat'):.4f}, {geo.get('lon'):.4f}  ·  alt {station.get('stationaltitude') or '—'} m"
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=ncols)
+    title = ws.cell(row=1, column=1, value=title_text)
+    title.font = Font(bold=True, size=18, color="FFFFFF")
+    title.alignment = Alignment(horizontal="left", vertical="center")
+    title.fill = PatternFill("solid", fgColor=BRAND_PRIMARY)
+    ws.row_dimensions[1].height = 28
+
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=ncols)
+    subc = ws.cell(row=2, column=1, value=sub_text)
+    subc.font = Font(italic=True, size=11, color="FFFFFF")
+    subc.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    subc.fill = PatternFill("solid", fgColor=BRAND_ACCENT)
+    ws.row_dimensions[2].height = 18
+
+    # KPI tiles (compact, span cols)
+    pm25_vals = [r["pm2_5"] for r in rows if r.get("pm2_5") is not None]
+    pm10_vals = [r["pm10"] for r in rows if r.get("pm10") is not None]
+    aqi_vals = [r["us_aqi"] for r in rows if r.get("us_aqi") is not None]
+    dust_vals = [r["dust"] for r in rows if r.get("dust") is not None]
+    avg = lambda xs: sum(xs) / len(xs) if xs else 0
+    kpi_specs = [
+        ("AVG PM2.5", f"{avg(pm25_vals):.1f} µg/m³", BRAND_PRIMARY),
+        ("AVG PM10", f"{avg(pm10_vals):.0f} µg/m³", BRAND_ACCENT),
+        ("AVG AQI", f"{avg(aqi_vals):.0f}", CAT_COLORS["aqi"]),
+        ("PEAK AQI", f"{max(aqi_vals or [0]):.0f}", "B83232"),
+        ("AVG DUST", f"{avg(dust_vals):.0f} µg/m³", CAT_COLORS["atmos"]),
+        ("HOURLY ROWS", f"{len(rows):,}", BRAND_GOLD),
     ]
-    title = f"{station['stationairq']}  ({station.get('stationclass')})"
-    ws.cell(row=1, column=1, value=title).font = Font(bold=True, size=14, color=BRAND_PRIMARY)
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
-    ws.row_dimensions[1].height = 22
+    width_per = max(3, ncols // len(kpi_specs))
+    for i, (lbl, val, color) in enumerate(kpi_specs):
+        left = 1 + i * width_per
+        if left + width_per - 1 > ncols:
+            break
+        lbl_cell = ws.cell(row=4, column=left, value=lbl)
+        val_cell = ws.cell(row=5, column=left, value=val)
+        ws.merge_cells(start_row=4, start_column=left,
+                       end_row=4, end_column=left + width_per - 1)
+        ws.merge_cells(start_row=5, start_column=left,
+                       end_row=5, end_column=left + width_per - 1)
+        lbl_cell.fill = PatternFill("solid", fgColor=color)
+        lbl_cell.font = Font(bold=True, color="FFFFFF", size=9)
+        lbl_cell.alignment = Alignment(horizontal="center", vertical="center")
+        val_cell.fill = PatternFill("solid", fgColor="FFFFFF")
+        val_cell.font = Font(bold=True, size=14, color=color)
+        val_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[4].height = 16
+    ws.row_dimensions[5].height = 22
 
-    for c, h in enumerate(headers, start=1):
-        ws.cell(row=2, column=c, value=h)
-    style_header_row(ws, 2, len(headers))
+    # Row 6: grouped category headers
+    col = 1
+    for grp_label, cat, items in COLUMN_GROUPS:
+        span = len(items)
+        ws.merge_cells(start_row=6, start_column=col,
+                       end_row=6, end_column=col + span - 1)
+        gc = ws.cell(row=6, column=col, value=grp_label)
+        gc.fill = PatternFill("solid", fgColor=CAT_COLORS[cat])
+        gc.font = Font(bold=True, color="FFFFFF", size=10)
+        gc.alignment = Alignment(horizontal="center", vertical="center")
+        gc.border = BORDER
+        col += span
+    ws.row_dimensions[6].height = 20
 
-    for i, r in enumerate(rows, start=3):
-        ws.cell(row=i, column=1, value=r["time"])
-        ws.cell(row=i, column=2, value=r["pm2_5"])
-        ws.cell(row=i, column=3, value=r["pm10"])
-        ws.cell(row=i, column=4, value=r["o3"])
-        ws.cell(row=i, column=5, value=r["no2"])
-        ws.cell(row=i, column=6, value=r["so2"])
-        ws.cell(row=i, column=7, value=r["co"])
-        ws.cell(row=i, column=8, value=r["us_aqi"])
-        ws.cell(row=i, column=9, value=r["temperature"])
-        ws.cell(row=i, column=10, value=r["humidity"])
-        ws.cell(row=i, column=11, value=r["wind_speed"])
-        ws.cell(row=i, column=12, value=r["wind_dir"])
-        ws.cell(row=i, column=13, value=r["pressure"])
+    # Row 7: column headers with unit
+    for c, (_key, header, unit, _fmt, cat) in enumerate(cols, start=1):
+        label = f"{header}" if not unit or unit == "—" else f"{header}\n({unit})"
+        cell = ws.cell(row=7, column=c, value=label)
+        cell.fill = PatternFill("solid", fgColor=CAT_COLORS[cat])
+        cell.font = Font(bold=True, color="FFFFFF", size=10)
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = BORDER
+    ws.row_dimensions[7].height = 32
 
-    last = ws.max_row
-    for c in range(2, 8):
-        col = get_column_letter(c)
-        for r in range(3, last + 1):
-            ws[f"{col}{r}"].number_format = "0.0"
-    for c in (9, 10, 11, 12, 13):
-        col = get_column_letter(c)
-        for r in range(3, last + 1):
-            ws[f"{col}{r}"].number_format = "0.0"
-    for r in range(3, last + 1):
-        ws.cell(row=r, column=1).number_format = "yyyy-mm-dd hh:mm"
-    add_aqi_conditional(ws, "H", 3, last)
+    # Data rows
+    data_start = 8
+    for i, r in enumerate(rows):
+        rr = data_start + i
+        for c, (key, _h, _u, fmt, _cat) in enumerate(cols, start=1):
+            val = r.get(key)
+            cell = ws.cell(row=rr, column=c, value=val)
+            cell.number_format = fmt
+            if (i % 2) == 1:
+                cell.fill = PatternFill("solid", fgColor=BRAND_LIGHT)
 
-    ws.freeze_panes = "A3"
-    ws.auto_filter.ref = f"A2:{get_column_letter(len(headers))}{last}"
-    autosize(ws, {
-        1: 20, 2: 12, 3: 12, 4: 11, 5: 11, 6: 11, 7: 11, 8: 10,
-        9: 10, 10: 11, 11: 11, 12: 11, 13: 12,
-    })
+    last = data_start + len(rows) - 1
+
+    # Conditional formatting on every AQI column
+    for c, (key, _h, _u, _f, _cat) in enumerate(cols, start=1):
+        if key.startswith("us_aqi"):
+            add_aqi_conditional(ws, get_column_letter(c), data_start, last)
+
+    ws.freeze_panes = ws.cell(row=data_start, column=2).coordinate
+    ws.auto_filter.ref = f"A7:{get_column_letter(ncols)}{last}"
+
+    # Auto-size widths
+    widths = {1: 18}
+    for c, (_k, header, unit, _f, _cat) in enumerate(cols[1:], start=2):
+        widths[c] = max(9, min(14, max(len(header), len(unit) + 2) + 2))
+    autosize(ws, widths)
 
 
 def build_summary(wb: Workbook, per_station: dict[str, tuple[dict, list[dict]]]) -> None:
     ws = wb.create_sheet("Summary")
-    headers = [
-        "Station", "Year-Month", "Avg PM2.5", "Avg PM10", "Avg O₃", "Avg NO₂",
-        "Avg SO₂", "Avg CO", "Avg US AQI", "WHO PM2.5 ✓", "NCEC PM2.5 ✓",
-    ]
-    ws.append(headers)
-    style_header_row(ws, 1, len(headers))
+    ws.sheet_view.showGridLines = False
 
+    ws.merge_cells("A1:N2")
+    title = ws.cell(row=1, column=1, value="  Monthly Averages by Station")
+    title.font = Font(bold=True, size=18, color="FFFFFF")
+    title.alignment = Alignment(horizontal="left", vertical="center")
+    title.fill = PatternFill("solid", fgColor=BRAND_PRIMARY)
+    ws.row_dimensions[1].height = 22
+    ws.row_dimensions[2].height = 22
+
+    headers = [
+        ("Station", "pollutants"),
+        ("Year-Month", "pollutants"),
+        ("Avg PM2.5", "pollutants"),
+        ("Avg PM10", "pollutants"),
+        ("Avg O₃", "pollutants"),
+        ("Avg NO₂", "pollutants"),
+        ("Avg SO₂", "pollutants"),
+        ("Avg CO", "pollutants"),
+        ("Avg Dust", "atmos"),
+        ("Avg AOD", "atmos"),
+        ("Avg AQI", "aqi"),
+        ("Peak AQI", "aqi"),
+        ("WHO PM2.5", "aqi"),
+        ("NCEC PM2.5", "aqi"),
+    ]
+    for c, (h, cat) in enumerate(headers, start=1):
+        cell = ws.cell(row=3, column=c, value=h)
+        cell.fill = PatternFill("solid", fgColor=CAT_COLORS[cat])
+        cell.font = Font(bold=True, color="FFFFFF", size=10)
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = BORDER
+    ws.row_dimensions[3].height = 28
+
+    row_idx = 4
     for stn_name, (_meta, rows) in per_station.items():
         buckets: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
         for r in rows:
@@ -415,7 +712,8 @@ def build_summary(wb: Workbook, per_station: dict[str, tuple[dict, list[dict]]])
             if not ts:
                 continue
             ym = ts[:7]
-            for k in ("pm2_5", "pm10", "o3", "no2", "so2", "co", "us_aqi"):
+            for k in ("pm2_5", "pm10", "ozone", "nitrogen_dioxide", "sulphur_dioxide",
+                      "carbon_monoxide", "dust", "aerosol_optical_depth", "us_aqi"):
                 v = r.get(k)
                 if v is not None:
                     buckets[ym][k].append(v)
@@ -424,38 +722,74 @@ def build_summary(wb: Workbook, per_station: dict[str, tuple[dict, list[dict]]])
             def avg(k: str) -> float | None:
                 return sum(b[k]) / len(b[k]) if b.get(k) else None
             avg_pm25 = avg("pm2_5")
+            peak_aqi = max(b["us_aqi"]) if b.get("us_aqi") else None
             who_ok = "✓" if avg_pm25 is not None and avg_pm25 <= LIMITS["pm2_5"]["WHO"] else "✗"
             ncec_ok = "✓" if avg_pm25 is not None and avg_pm25 <= LIMITS["pm2_5"]["NCEC"] else "✗"
-            ws.append([
-                stn_name, ym, avg_pm25, avg("pm10"), avg("o3"), avg("no2"),
-                avg("so2"), avg("co"), avg("us_aqi"), who_ok, ncec_ok,
-            ])
+            vals = [
+                stn_name, ym, avg_pm25, avg("pm10"), avg("ozone"), avg("nitrogen_dioxide"),
+                avg("sulphur_dioxide"), avg("carbon_monoxide"),
+                avg("dust"), avg("aerosol_optical_depth"),
+                avg("us_aqi"), peak_aqi, who_ok, ncec_ok,
+            ]
+            for c, v in enumerate(vals, start=1):
+                cell = ws.cell(row=row_idx, column=c, value=v)
+                cell.border = BORDER
+                if row_idx % 2 == 0:
+                    cell.fill = PatternFill("solid", fgColor=BRAND_LIGHT)
+            # PM2.5 compliance coloring
+            who_cell = ws.cell(row=row_idx, column=13)
+            ncec_cell = ws.cell(row=row_idx, column=14)
+            who_cell.fill = PatternFill("solid", fgColor="00E400" if who_ok == "✓" else "FF0000")
+            who_cell.font = Font(bold=True, color="000000" if who_ok == "✓" else "FFFFFF")
+            who_cell.alignment = Alignment(horizontal="center")
+            ncec_cell.fill = PatternFill("solid", fgColor="00E400" if ncec_ok == "✓" else "FF0000")
+            ncec_cell.font = Font(bold=True, color="000000" if ncec_ok == "✓" else "FFFFFF")
+            ncec_cell.alignment = Alignment(horizontal="center")
+            row_idx += 1
 
-    last = ws.max_row
-    for c in range(3, 10):
+    last = row_idx - 1
+    for c in range(3, 11):
         col = get_column_letter(c)
-        for r in range(2, last + 1):
-            ws[f"{col}{r}"].number_format = "0.0"
-    add_aqi_conditional(ws, "I", 2, last)
-    ws.freeze_panes = "A2"
-    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{last}"
+        for r in range(4, last + 1):
+            fmt = "0.000" if c == 10 else "0.0"
+            ws[f"{col}{r}"].number_format = fmt
+    for c in (11, 12):
+        col = get_column_letter(c)
+        for r in range(4, last + 1):
+            ws[f"{col}{r}"].number_format = "0"
+    add_aqi_conditional(ws, "K", 4, last)
+    add_aqi_conditional(ws, "L", 4, last)
+    ws.freeze_panes = "C4"
+    ws.auto_filter.ref = f"A3:{get_column_letter(len(headers))}{last}"
     autosize(ws, {
-        1: 28, 2: 11, 3: 12, 4: 12, 5: 11, 6: 11,
-        7: 11, 8: 11, 9: 12, 10: 14, 11: 14,
+        1: 28, 2: 11, 3: 11, 4: 11, 5: 10, 6: 10,
+        7: 10, 8: 10, 9: 11, 10: 10, 11: 10, 12: 10, 13: 12, 14: 12,
     })
 
 
 def build_legend(wb: Workbook) -> None:
     ws = wb.create_sheet("Legend")
     ws.sheet_view.showGridLines = False
-    ws["A1"] = "Legend"
-    ws["A1"].font = Font(bold=True, size=16, color=BRAND_PRIMARY)
-    ws["A3"] = "US AQI bands"
-    ws["A3"].font = Font(bold=True, size=12)
-    headers = ["Range", "Category", "Health implications"]
+
+    ws.merge_cells("A1:D2")
+    title = ws.cell(row=1, column=1, value="  Legend  ·  Reference Tables")
+    title.font = Font(bold=True, size=18, color="FFFFFF")
+    title.alignment = Alignment(horizontal="left", vertical="center")
+    title.fill = PatternFill("solid", fgColor=BRAND_PRIMARY)
+    ws.row_dimensions[1].height = 22
+    ws.row_dimensions[2].height = 22
+
+    # --- AQI band table
+    ws.cell(row=4, column=1, value="US AQI BANDS").font = Font(
+        bold=True, size=12, color=BRAND_PRIMARY)
+    headers = ["Swatch", "Range", "Category", "Health Implications"]
     for c, h in enumerate(headers, start=1):
-        ws.cell(row=4, column=c, value=h)
-    style_header_row(ws, 4, len(headers))
+        cell = ws.cell(row=5, column=c, value=h)
+        cell.fill = PatternFill("solid", fgColor=BRAND_PRIMARY)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = BORDER
+    ws.row_dimensions[5].height = 22
 
     descriptions = {
         "Good": "Air quality is satisfactory; little to no risk.",
@@ -465,28 +799,87 @@ def build_legend(wb: Workbook) -> None:
         "Very Unhealthy": "Health alert; everyone may experience more serious effects.",
         "Hazardous": "Emergency conditions; entire population affected.",
     }
-    row = 5
+    row = 6
     for lo, hi, fg, fc, label in AQI_BANDS:
-        ws.cell(row=row, column=1, value=f"{lo}–{hi}").fill = PatternFill("solid", fgColor=fg)
-        ws.cell(row=row, column=1).font = Font(color=fc, bold=True)
-        ws.cell(row=row, column=1).alignment = Alignment(horizontal="center")
-        ws.cell(row=row, column=2, value=label).font = Font(bold=True)
-        ws.cell(row=row, column=3, value=descriptions[label])
+        sw = ws.cell(row=row, column=1, value="")
+        sw.fill = PatternFill("solid", fgColor=fg)
+        sw.border = BORDER
+        rng = ws.cell(row=row, column=2, value=f"{lo}–{hi}")
+        rng.font = Font(bold=True)
+        rng.alignment = Alignment(horizontal="center")
+        rng.border = BORDER
+        cat = ws.cell(row=row, column=3, value=label)
+        cat.font = Font(bold=True, color=fc)
+        cat.fill = PatternFill("solid", fgColor=fg)
+        cat.alignment = Alignment(horizontal="center")
+        cat.border = BORDER
+        desc = ws.cell(row=row, column=4, value=descriptions[label])
+        desc.alignment = Alignment(wrap_text=True, vertical="center")
+        desc.border = BORDER
+        ws.row_dimensions[row].height = 24
         row += 1
 
+    # --- Reference limits table
     row += 2
-    ws.cell(row=row, column=1, value="Reference annual-mean limits (µg/m³)").font = Font(bold=True, size=12)
+    ws.cell(row=row, column=1, value="REFERENCE ANNUAL-MEAN LIMITS").font = Font(
+        bold=True, size=12, color=BRAND_PRIMARY)
     row += 1
-    for c, h in enumerate(["Pollutant", "WHO (2021 AQG)", "Saudi NCEC"], start=1):
-        ws.cell(row=row, column=c, value=h)
-    style_header_row(ws, row, 3)
-    for pol in ["pm2_5", "pm10", "no2", "so2", "o3", "co"]:
+    for c, h in enumerate(["Pollutant", "WHO (2021 AQG)", "Saudi NCEC", "Unit"], start=1):
+        cell = ws.cell(row=row, column=c, value=h)
+        cell.fill = PatternFill("solid", fgColor=BRAND_PRIMARY)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = BORDER
+    ws.row_dimensions[row].height = 20
+    for i, pol in enumerate(["pm2_5", "pm10", "no2", "so2", "o3", "co"]):
         row += 1
+        unit = "µg/m³"
         ws.cell(row=row, column=1, value=pol.upper().replace("_", "."))
         ws.cell(row=row, column=2, value=LIMITS[pol]["WHO"])
         ws.cell(row=row, column=3, value=LIMITS[pol]["NCEC"])
+        ws.cell(row=row, column=4, value=unit)
+        for c in range(1, 5):
+            ws.cell(row=row, column=c).border = BORDER
+            ws.cell(row=row, column=c).alignment = Alignment(horizontal="center")
+            if i % 2 == 1:
+                ws.cell(row=row, column=c).fill = PatternFill("solid", fgColor=BRAND_LIGHT)
 
-    autosize(ws, {1: 18, 2: 32, 3: 60})
+    # --- Category swatches
+    row += 2
+    ws.cell(row=row, column=1, value="COLUMN CATEGORY COLOR KEY").font = Font(
+        bold=True, size=12, color=BRAND_PRIMARY)
+    row += 1
+    for c, h in enumerate(["Swatch", "Category", "Description", ""], start=1):
+        cell = ws.cell(row=row, column=c, value=h)
+        cell.fill = PatternFill("solid", fgColor=BRAND_PRIMARY)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = BORDER
+    cat_descs = {
+        "pollutants": "Core gas + particulate pollutants",
+        "atmos": "Atmospheric composition (dust, AOD, UV)",
+        "aqi": "US Air Quality Index (overall + per-pollutant)",
+        "temp": "Temperature and humidity",
+        "press": "Surface and mean sea-level pressure",
+        "precip": "Precipitation (rain, snow)",
+        "cloud": "Cloud cover at altitude bands",
+        "wind": "Wind speed, gusts and direction",
+        "rad": "Solar radiation and sunshine",
+        "soil": "Soil temperature and moisture",
+        "agro": "Agro indices (VPD, ET₀)",
+    }
+    for cat, descr in cat_descs.items():
+        row += 1
+        sw = ws.cell(row=row, column=1, value="")
+        sw.fill = PatternFill("solid", fgColor=CAT_COLORS[cat])
+        sw.border = BORDER
+        ws.cell(row=row, column=2, value=cat.upper()).font = Font(bold=True)
+        ws.cell(row=row, column=2).alignment = Alignment(horizontal="center")
+        ws.cell(row=row, column=2).border = BORDER
+        ws.cell(row=row, column=3, value=descr).border = BORDER
+        ws.cell(row=row, column=4, value="").border = BORDER
+
+    autosize(ws, {1: 12, 2: 18, 3: 60, 4: 12})
 
 
 # ---------------------------------------------------------------------------
