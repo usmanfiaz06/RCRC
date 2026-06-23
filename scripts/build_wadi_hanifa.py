@@ -26,7 +26,7 @@ SCRATCH = Path(os.environ.get(
     "RCRC_SCRATCH",
     "/tmp/claude-0/-home-user-RCRC/3e7d6508-8244-5a9f-b105-f6f5e0138312/scratchpad/raw",
 ))
-OUTPUT = Path("wadi_hanifa_2026_jan_to_may.xlsx")
+OUTPUT = Path("wadi_hanifa_2026_jan_to_jun.xlsx")
 
 STATION_SLUG = "wadi_hanifa"
 STATION_NAME = "Wadi Hanifa"
@@ -122,9 +122,34 @@ def fmt_cell(cell, fmt="0.00", align="right", color_aqi=False):
 
 
 # ===== Load data =====
+def _merge_hourly(base: dict, extra: dict) -> dict:
+    """Concatenate the `hourly` arrays of two Open-Meteo responses."""
+    if not extra:
+        return base
+    base_times = set(base["hourly"]["time"])
+    # Find first index in extra whose timestamp is not already in base
+    extra_times = extra["hourly"]["time"]
+    start = 0
+    for i, t in enumerate(extra_times):
+        if t not in base_times:
+            start = i
+            break
+    else:
+        return base
+    for k, v in extra["hourly"].items():
+        base["hourly"][k] = base["hourly"][k] + v[start:]
+    return base
+
+
 def load_series():
     aq = json.loads((SCRATCH / f"aq_{STATION_SLUG}.json").read_text())
     wx = json.loads((SCRATCH / f"wx_{STATION_SLUG}.json").read_text())
+    aq_ext = SCRATCH / f"aq_{STATION_SLUG}_jun.json"
+    wx_ext = SCRATCH / f"wx_{STATION_SLUG}_jun.json"
+    if aq_ext.exists():
+        aq = _merge_hourly(aq, json.loads(aq_ext.read_text()))
+    if wx_ext.exists():
+        wx = _merge_hourly(wx, json.loads(wx_ext.read_text()))
     return aq, wx
 
 
@@ -229,7 +254,7 @@ def build_cover(wb, rows, generated):
 
     ws.merge_cells("B4:K4")
     ws.cell(row=4, column=2,
-            value="Reporting period: 1 January 2026 — 31 May 2026 (151 days · hourly)") \
+            value="Reporting period: 1 January 2026 — 23 June 2026 (174 days · hourly)") \
         .font = Font(name="Calibri", size=12, color="C6E4F4")
 
     ws.merge_cells("B5:K5")
@@ -345,7 +370,7 @@ def build_hourly(wb, rows):
     ws.sheet_view.showGridLines = False
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(HOURLY_HEADERS))
-    t = ws.cell(row=1, column=1, value="Wadi Hanifa — Hourly readings · 1 Jan – 31 May 2026")
+    t = ws.cell(row=1, column=1, value="Wadi Hanifa — Hourly readings · 1 Jan – 23 Jun 2026")
     t.font = Font(name="Calibri", size=15, bold=True, color=BRAND_DARK)
     t.alignment = Alignment(horizontal="left", vertical="center")
     ws.row_dimensions[1].height = 28
@@ -402,7 +427,7 @@ def build_daily(wb, rows):
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(DAILY_HEADERS))
     t = ws.cell(row=1, column=1,
-                value="Wadi Hanifa — Daily averages with min/max/std · 1 Jan – 31 May 2026")
+                value="Wadi Hanifa — Daily averages with min/max/std · 1 Jan – 23 Jun 2026")
     t.font = Font(name="Calibri", size=15, bold=True, color=BRAND_DARK)
     t.alignment = Alignment(horizontal="left", vertical="center")
     ws.row_dimensions[1].height = 28
